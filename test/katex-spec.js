@@ -1776,3 +1776,13 @@ describe("The symbol table integraty", function() {
             .toEqual(getBuilt("\\left\\lt\\frac{1}{x}\\right\\gt"));
     });
 });
+
+describe("Unicode", function() {
+    it("should parse all lower case Greek letters", function() {
+        expect("αβγδεζηθικλμνξοπρςστυφχψω").toParse();
+    });
+
+    it("should parse 'ΓΔΘΞΠΣΦΨΩ'", function() {
+        expect("ΓΔΘΞΠΣΦΨΩ").toParse();
+    });
+});
