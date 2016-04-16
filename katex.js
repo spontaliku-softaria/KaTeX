@@ -9,6 +9,7 @@
 
 var ParseError = require("./src/ParseError");
 var Settings = require("./src/Settings");
+var ParseNode = require("./src/parseData").ParseNode;
 
 var buildTree = require("./src/buildTree");
 var parseTree = require("./src/parseTree");
@@ -71,4 +72,5 @@ module.exports = {
      */
     __parse: generateParseTree,
     ParseError: ParseError,
+    ParseNode: ParseNode,
 };
