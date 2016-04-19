@@ -461,6 +461,7 @@ Parser.prototype.parseImplicitGroup = function() {
             // Figure out what size to use based on the list of functions above
             size: "size" + (utils.indexOf(sizeFuncs, func) + 1),
             value: body,
+            func: func,
         }, this.mode);
     } else if (utils.contains(styleFuncs, func)) {
         // If we see a styling function, parse out the implict body

@@ -463,6 +463,7 @@ defineFunction([
             size: delimiterSizes[context.funcName].size,
             delimType: delimiterSizes[context.funcName].type,
             value: delim.value,
+            func: context.funcName,
         };
     }
 });
