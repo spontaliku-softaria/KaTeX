@@ -146,6 +146,7 @@ defineEnvironment([
             body: [res],
             left: delimiters[0],
             right: delimiters[1],
+            env: context.envName,
         }, context.mode);
     }
     return res;
@@ -176,6 +177,7 @@ defineEnvironment("cases", {
         body: [res],
         left: "\\{",
         right: ".",
+        env: context.envName,
     }, context.mode);
     return res;
 });
@@ -217,5 +219,6 @@ defineEnvironment("aligned", {
             postgap: 0,
         };
     }
+    res.env = context.envName;
     return res;
 });
