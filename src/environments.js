@@ -146,9 +146,9 @@ defineEnvironment([
             body: [res],
             left: delimiters[0],
             right: delimiters[1],
-            env: context.envName,
         }, context.mode);
     }
+    res.env = context.envName;
     return res;
 });
 
@@ -177,8 +177,8 @@ defineEnvironment("cases", {
         body: [res],
         left: "\\{",
         right: ".",
-        env: context.envName,
     }, context.mode);
+    res.env = context.envName;
     return res;
 });
 
