@@ -421,12 +421,13 @@ describe("A parser with limit controls", function() {
 
     it("should have the rightmost limit control determine the limits property " +
         "of the preceding op node", function() {
-            var parsedInput = getParsed("\\int\\nolimits\\limits_2^2");
-            expect(parsedInput[0].value.base.value.limits).toBe(true);
 
-            parsedInput = getParsed("\\int\\limits_2\\nolimits^2");
-            expect(parsedInput[0].value.base.value.limits).toBe(false);
-        });
+        var parsedInput = getParsed("\\int\\nolimits\\limits_2^2");
+        expect(parsedInput[0].value.base.value.limits).toBe(true);
+
+        parsedInput = getParsed("\\int\\limits_2\\nolimits^2");
+        expect(parsedInput[0].value.base.value.limits).toBe(false);
+    });
 });
 
 describe("A group parser", function() {
@@ -906,6 +907,31 @@ describe("A rule parser", function() {
 
         expect(parse.value.width.number).toBeCloseTo(-1);
         expect(parse.value.height.number).toBeCloseTo(-0.2);
+    });
+});
+
+describe("A kern parser", function() {
+    var emKern = "\\kern{1em}";
+    var exKern = "\\kern{1ex}";
+    var badUnitRule = "\\kern{1px}";
+    var noNumberRule = "\\kern{em}";
+
+    it("should list the correct units", function() {
+        var emParse = getParsed(emKern)[0];
+        var exParse = getParsed(exKern)[0];
+
+        expect(emParse.value.dimension.unit).toEqual("em");
+        expect(exParse.value.dimension.unit).toEqual("ex");
+    });
+
+    it("should not parse invalid units", function() {
+        expect(badUnitRule).toNotParse();
+        expect(noNumberRule).toNotParse();
+    });
+
+    it("should parse negative sizes", function() {
+        var parse = getParsed("\\kern{-1em}")[0];
+        expect(parse.value.dimension.number).toBeCloseTo(-1);
     });
 });
 
