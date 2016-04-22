@@ -15,6 +15,7 @@ var buildTree = require("./src/buildTree");
 var parseTree = require("./src/parseTree");
 var utils = require("./src/utils");
 var symbols = require("./src/symbols");
+var functions = require("./src/functions");
 
 /**
  * Parse and build an expression, and place that expression in the DOM node
@@ -73,6 +74,7 @@ module.exports = {
      */
     __parse: generateParseTree,
     __symbols: symbols,
+    __functions: functions,
     ParseError: ParseError,
     ParseNode: ParseNode,
 };
