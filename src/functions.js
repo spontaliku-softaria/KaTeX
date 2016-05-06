@@ -427,6 +427,7 @@ defineFunction([
         leftDelim: leftDelim,
         rightDelim: rightDelim,
         size: size,
+        func: context.funcName,
     };
 });
 
