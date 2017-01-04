@@ -7,7 +7,7 @@
  *
  * Similar functions for working with MathML nodes exist in mathMLTree.js.
  */
-
+var unicodeRegexes = require("./unicodeRegexes");
 var utils = require("./utils");
 
 /**
@@ -30,14 +30,22 @@ var createClass = function(classes) {
  * an inline style. It also contains information about its height, depth, and
  * maxFontSize.
  */
-function span(classes, children, height, depth, maxFontSize, style) {
+function span(classes, children, options) {
     this.classes = classes || [];
     this.children = children || [];
-    this.height = height || 0;
-    this.depth = depth || 0;
-    this.maxFontSize = maxFontSize || 0;
-    this.style = style || {};
+    this.height = 0;
+    this.depth = 0;
+    this.maxFontSize = 0;
+    this.style = {};
     this.attributes = {};
+    if (options) {
+        if (options.style.isTight()) {
+            this.classes.push("mtight");
+        }
+        if (options.getColor()) {
+            this.style.color = options.getColor();
+        }
+    }
 }
 
 /**
@@ -47,6 +55,10 @@ function span(classes, children, height, depth, maxFontSize, style) {
  */
 span.prototype.setAttribute = function(attribute, value) {
     this.attributes[attribute] = value;
+};
+
+span.prototype.tryCombine = function(sibling) {
+    return false;
 };
 
 /**
@@ -133,11 +145,11 @@ span.prototype.toMarkup = function() {
  * contains children and doesn't have any HTML properties. It also keeps track
  * of a height, depth, and maxFontSize.
  */
-function documentFragment(children, height, depth, maxFontSize) {
+function documentFragment(children) {
     this.children = children || [];
-    this.height = height || 0;
-    this.depth = depth || 0;
-    this.maxFontSize = maxFontSize || 0;
+    this.height = 0;
+    this.depth = 0;
+    this.maxFontSize = 0;
 }
 
 /**
@@ -169,6 +181,14 @@ documentFragment.prototype.toMarkup = function() {
     return markup;
 };
 
+var iCombinations = {
+    'î': '\u0131\u0302',
+    'ï': '\u0131\u0308',
+    'í': '\u0131\u0301',
+    // 'ī': '\u0131\u0304', // enable when we add Extended Latin
+    'ì': '\u0131\u0300',
+};
+
 /**
  * A symbol node contains information about a single symbol. It either renders
  * to a single text node, or a span with a single text node in it, depending on
@@ -183,7 +203,54 @@ function symbolNode(value, height, depth, italic, skew, classes, style) {
     this.classes = classes || [];
     this.style = style || {};
     this.maxFontSize = 0;
+
+    // Mark CJK characters with specific classes so that we can specify which
+    // fonts to use.  This allows us to render these characters with a serif
+    // font in situations where the browser would either default to a sans serif
+    // or render a placeholder character.
+    if (unicodeRegexes.cjkRegex.test(value)) {
+        // I couldn't find any fonts that contained Hangul as well as all of
+        // the other characters we wanted to test there for it gets its own
+        // CSS class.
+        if (unicodeRegexes.hangulRegex.test(value)) {
+            this.classes.push('hangul_fallback');
+        } else {
+            this.classes.push('cjk_fallback');
+        }
+    }
+
+    if (/[îïíì]/.test(this.value)) {    // add ī when we add Extended Latin
+        this.value = iCombinations[this.value];
+    }
 }
+
+symbolNode.prototype.tryCombine = function(sibling) {
+    if (!sibling
+        || !(sibling instanceof symbolNode)
+        || this.italic > 0
+        || createClass(this.classes) !== createClass(sibling.classes)
+        || this.skew !== sibling.skew
+        || this.maxFontSize !== sibling.maxFontSize) {
+        return false;
+    }
+    for (var style in this.style) {
+        if (this.style.hasOwnProperty(style)
+            && this.style[style] !== sibling.style[style]) {
+            return false;
+        }
+    }
+    for (style in sibling.style) {
+        if (sibling.style.hasOwnProperty(style)
+            && this.style[style] !== sibling.style[style]) {
+            return false;
+        }
+    }
+    this.value += sibling.value;
+    this.height = Math.max(this.height, sibling.height);
+    this.depth = Math.max(this.depth, sibling.depth);
+    this.italic = sibling.italic;
+    return true;
+};
 
 /**
  * Creates a text node or span from a symbol node. Note that a span is only

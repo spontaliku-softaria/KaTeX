@@ -285,6 +285,13 @@ groupTypes.leftright = function(group, options) {
     return outerNode;
 };
 
+groupTypes.middle = function(group, options) {
+    var middleNode = new mathMLTree.MathNode(
+        "mo", [makeText(group.value.middle, group.mode)]);
+    middleNode.setAttribute("fence", "true");
+    return middleNode;
+};
+
 groupTypes.accent = function(group, options) {
     var accentNode = new mathMLTree.MathNode(
         "mo", [makeText(group.value.accent, group.mode)]);
@@ -316,7 +323,7 @@ groupTypes.spacing = function(group) {
     return node;
 };
 
-groupTypes.op = function(group) {
+groupTypes.op = function(group, options) {
     var node;
 
     // TODO(emily): handle big operators using the `largeop` attribute
@@ -325,6 +332,10 @@ groupTypes.op = function(group) {
         // This is a symbol. Just add the symbol.
         node = new mathMLTree.MathNode(
             "mo", [makeText(group.value.body, group.mode)]);
+    } else if (group.value.value) {
+        // This is an operator with children. Add them.
+        node = new mathMLTree.MathNode(
+            "mo", buildExpression(group.value.value, options));
     } else {
         // This is a text operator. Add all of the characters from the
         // operator's name.
@@ -335,6 +346,31 @@ groupTypes.op = function(group) {
     }
 
     return node;
+};
+
+groupTypes.mod = function(group, options) {
+    var inner = [];
+
+    if (group.value.modType === "pod" || group.value.modType === "pmod") {
+        inner.push(new mathMLTree.MathNode(
+            "mo", [makeText("(", group.mode)]));
+    }
+    if (group.value.modType !== "pod") {
+        inner.push(new mathMLTree.MathNode(
+            "mo", [makeText("mod", group.mode)]));
+    }
+    if (group.value.value) {
+        var space = new mathMLTree.MathNode("mspace");
+        space.setAttribute("width", "0.333333em");
+        inner.push(space);
+        inner = inner.concat(buildExpression(group.value.value, options));
+    }
+    if (group.value.modType === "pod" || group.value.modType === "pmod") {
+        inner.push(new mathMLTree.MathNode(
+            "mo", [makeText(")", group.mode)]));
+    }
+
+    return new mathMLTree.MathNode("mo", inner);
 };
 
 groupTypes.katex = function(group) {
@@ -358,10 +394,10 @@ groupTypes.delimsizing = function(group) {
 
     var node = new mathMLTree.MathNode("mo", children);
 
-    if (group.value.delimType === "open" ||
-        group.value.delimType === "close") {
+    if (group.value.mclass === "mopen" ||
+        group.value.mclass === "mclose") {
         // Only some of the delimsizing functions act as fences, and they
-        // return "open" or "close" delimTypes.
+        // return "mopen" or "mclose" mclass.
         node.setAttribute("fence", "true");
     } else {
         // Explicitly disable fencing if it's not a fence, to override the
@@ -470,9 +506,14 @@ groupTypes.rlap = function(group, options) {
     return node;
 };
 
-groupTypes.phantom = function(group, options, prev) {
+groupTypes.phantom = function(group, options) {
     var inner = buildExpression(group.value.value, options);
     return new mathMLTree.MathNode("mphantom", inner);
+};
+
+groupTypes.mclass = function(group, options) {
+    var inner = buildExpression(group.value.value, options);
+    return new mathMLTree.MathNode("mstyle", inner);
 };
 
 /**

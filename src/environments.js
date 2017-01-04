@@ -1,7 +1,7 @@
 /* eslint no-constant-condition:0 */
-var fontMetrics = require("./fontMetrics");
 var parseData = require("./parseData");
 var ParseError = require("./ParseError");
+var Style = require("./Style");
 
 var ParseNode = parseData.ParseNode;
 
@@ -28,10 +28,8 @@ function parseArray(parser, result) {
             row = [];
             body.push(row);
         } else {
-            // TODO: Clean up the following hack once #385 got merged
-            var pos = Math.min(parser.pos + 1, parser.lexer._input.length);
             throw new ParseError("Expected & or \\\\ or \\end",
-                                 parser.lexer, pos);
+                                 parser.nextToken);
         }
     }
     result.body = body;
@@ -106,7 +104,7 @@ defineEnvironment("array", {
         }
         throw new ParseError(
             "Unknown column alignment: " + node.value,
-            context.lexer, context.positions[1]);
+            node);
     });
     var res = {
         type: "array",
@@ -164,7 +162,11 @@ defineEnvironment("cases", {
             type: "align",
             align: "l",
             pregap: 0,
-            postgap: fontMetrics.metrics.quad,
+            // TODO(kevinb) get the current style.
+            // For now we use the metrics for TEXT style which is what we were
+            // doing before.  Before attempting to get the current style we
+            // should look at TeX's behavior especially for \over and matrices.
+            postgap: Style.TEXT.metrics.quad,
         }, {
             type: "align",
             align: "l",

@@ -87,7 +87,9 @@ defineSymbol(math, main, punct, "\u22c5", "\\cdotp");
 
 // Misc Symbols
 defineSymbol(math, main, textord, "\u0023", "\\#");
+defineSymbol(text, main, textord, "\u0023", "\\#");
 defineSymbol(math, main, textord, "\u0026", "\\&");
+defineSymbol(text, main, textord, "\u0026", "\\&");
 defineSymbol(math, main, textord, "\u2135", "\\aleph");
 defineSymbol(math, main, textord, "\u2200", "\\forall");
 defineSymbol(math, main, textord, "\u210f", "\\hbar");
@@ -394,8 +396,11 @@ defineSymbol(math, ams, rel, "\u21be", "\\restriction");
 
 defineSymbol(math, main, textord, "\u2018", "`");
 defineSymbol(math, main, textord, "$", "\\$");
+defineSymbol(text, main, textord, "$", "\\$");
 defineSymbol(math, main, textord, "%", "\\%");
+defineSymbol(text, main, textord, "%", "\\%");
 defineSymbol(math, main, textord, "_", "\\_");
+defineSymbol(text, main, textord, "_", "\\_");
 defineSymbol(math, main, textord, "\u2220", "\\angle");
 defineSymbol(math, main, textord, "\u221e", "\\infty");
 defineSymbol(math, main, textord, "\u2032", "\\prime");
@@ -534,7 +539,9 @@ defineSymbol(math, main, bin, "\u22c6", "\\star");
 defineSymbol(math, main, bin, "\u25c3", "\\triangleleft");
 defineSymbol(math, main, bin, "\u25b9", "\\triangleright");
 defineSymbol(math, main, open, "{", "\\{");
+defineSymbol(text, main, textord, "{", "\\{");
 defineSymbol(math, main, close, "}", "\\}");
+defineSymbol(text, main, textord, "}", "\\}");
 defineSymbol(math, main, open, "{", "\\lbrace");
 defineSymbol(math, main, close, "}", "\\rbrace");
 defineSymbol(math, main, open, "[", "\\lbrack");
@@ -572,6 +579,9 @@ defineSymbol(math, math, op, "\u2a00", "\\bigodot");
 defineSymbol(math, math, op, "\u222e", "\\oint");
 defineSymbol(math, math, op, "\u2a06", "\\bigsqcup");
 defineSymbol(math, math, op, "\u222b", "\\smallint");
+defineSymbol(text, main, inner, "\u2026", "\\textellipsis");
+defineSymbol(math, main, inner, "\u2026", "\\mathellipsis");
+defineSymbol(text, main, inner, "\u2026", "\\ldots");
 defineSymbol(math, main, inner, "\u2026", "\\ldots");
 defineSymbol(math, main, inner, "\u22ef", "\\cdots");
 defineSymbol(math, main, inner, "\u22f1", "\\ddots");
@@ -589,6 +599,18 @@ defineSymbol(math, main, accent, "\u02d9", "\\dot");
 defineSymbol(math, main, mathord, "\u0131", "\\imath");
 defineSymbol(math, main, mathord, "\u0237", "\\jmath");
 
+defineSymbol(text, main, textord, "\u2013", "--");
+defineSymbol(text, main, textord, "\u2014", "---");
+defineSymbol(text, main, textord, "\u2018", "`");
+defineSymbol(text, main, textord, "\u2019", "'");
+defineSymbol(text, main, textord, "\u201c", "``");
+defineSymbol(text, main, textord, "\u201d", "''");
+defineSymbol(math, main, textord, "\u00b0", "\\degree");
+defineSymbol(text, main, textord, "\u00b0", "\\degree");
+defineSymbol(math, main, mathord, "\u00a3", "\\pounds");
+defineSymbol(math, ams, textord, "\u2720", "\\maltese");
+defineSymbol(text, ams, textord, "\u2720", "\\maltese");
+
 defineSymbol(text, main, spacing, "\u00a0", "\\ ");
 defineSymbol(text, main, spacing, "\u00a0", " ");
 defineSymbol(text, main, spacing, "\u00a0", "~");
@@ -605,7 +627,7 @@ for (i = 0; i < mathTextSymbols.length; i++) {
 }
 
 // All of these are textords in text mode
-var textSymbols = "0123456789`!@*()-=+[]'\";:?/.,";
+var textSymbols = "0123456789!@*()-=+[]\";:?/.,";
 for (i = 0; i < textSymbols.length; i++) {
     ch = textSymbols.charAt(i);
     defineSymbol(text, main, textord, ch, ch);
@@ -618,3 +640,33 @@ for (i = 0; i < letters.length; i++) {
     defineSymbol(math, main, mathord, ch, ch);
     defineSymbol(text, main, textord, ch, ch);
 }
+
+// Latin-1 letters
+for (i = 0x00C0; i <= 0x00D6; i++) {
+    ch = String.fromCharCode(i);
+    defineSymbol(text, main, textord, ch, ch);
+}
+
+for (i = 0x00D8; i <= 0x00F6; i++) {
+    ch = String.fromCharCode(i);
+    defineSymbol(text, main, textord, ch, ch);
+}
+
+for (i = 0x00F8; i <= 0x00FF; i++) {
+    ch = String.fromCharCode(i);
+    defineSymbol(text, main, textord, ch, ch);
+}
+
+// Cyrillic
+for (i = 0x0410; i <= 0x044F; i++) {
+    ch = String.fromCharCode(i);
+    defineSymbol(text, main, textord, ch, ch);
+}
+
+// Unicode versions of existing characters
+defineSymbol(text, main, textord, "\u2013", "–");
+defineSymbol(text, main, textord, "\u2014", "—");
+defineSymbol(text, main, textord, "\u2018", "‘");
+defineSymbol(text, main, textord, "\u2019", "’");
+defineSymbol(text, main, textord, "\u201c", "“");
+defineSymbol(text, main, textord, "\u201d", "”");

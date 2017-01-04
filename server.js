@@ -17,11 +17,11 @@ var serveBrowserified = function(file, standaloneName) {
     return function(req, res, next) {
         var files;
         if (Array.isArray(file)) {
-            files = file;
+            files = file.map(function(f) { return path.join(__dirname, f); });
         } else if (file.indexOf("*") !== -1) {
-            files = glob.sync(file);
+            files = glob.sync(file, {cwd: __dirname});
         } else {
-            files = [file];
+            files = [path.join(__dirname, file)];
         }
 
         var options = {};
@@ -41,7 +41,7 @@ var serveBrowserified = function(file, standaloneName) {
     };
 };
 
-app.get("/katex.js", serveBrowserified("./katex", "katex"));
+app.get("/katex.js", serveBrowserified("katex", "katex"));
 app.use("/test/jasmine",
     express["static"](
         path.dirname(
@@ -49,31 +49,31 @@ app.use("/test/jasmine",
         )
     )
 );
-app.get("/test/katex-spec.js", serveBrowserified("./test/*[Ss]pec.js"));
+app.get("/test/katex-spec.js", serveBrowserified("test/*[Ss]pec.js"));
 app.get("/contrib/auto-render/auto-render.js",
-        serveBrowserified("./contrib/auto-render/auto-render",
+        serveBrowserified("contrib/auto-render/auto-render",
                           "renderMathInElement"));
 
 app.get("/katex.css", function(req, res, next) {
-    fs.readFile("static/katex.less", {encoding: "utf8"}, function(err, data) {
+    var lessfile = path.join(__dirname, "static", "katex.less");
+    fs.readFile(lessfile, {encoding: "utf8"}, function(err, data) {
         if (err) {
             next(err);
             return;
         }
 
-        var parser = new less.Parser({
-            paths: ["./static"],
+        less.render(data, {
+            paths: [path.join(__dirname, "static")],
             filename: "katex.less",
-        });
-
-        parser.parse(data, function(err, tree) {
+        }, function(err, output) {
             if (err) {
+                console.error(String(err));
                 next(err);
                 return;
             }
 
             res.setHeader("Content-Type", "text/css");
-            res.send(tree.toCSS());
+            res.send(output.css);
         });
     });
 });
@@ -82,6 +82,8 @@ app.use(express["static"](path.join(__dirname, "static")));
 app.use(express["static"](path.join(__dirname, "build")));
 app.use("/test", express["static"](path.join(__dirname, "test")));
 app.use("/contrib", express["static"](path.join(__dirname, "contrib")));
+// app.use("/unicode-fonts",
+//     express["static"](path.join(__dirname, "static", "unicode-fonts")));
 
 app.use(function(err, req, res, next) {
     console.error(err.stack);
