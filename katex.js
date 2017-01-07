@@ -76,5 +76,5 @@ module.exports = {
     __symbols: symbols,
     __functions: functions,
     ParseError: ParseError,
-    ParseNode: ParseNode,
+    ParseNode: ParseNode
 };
