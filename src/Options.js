@@ -20,6 +20,7 @@ function Options(data) {
     this.size = data.size;
     this.phantom = data.phantom;
     this.font = data.font;
+    this.id = data.id;
 
     if (data.parentStyle === undefined) {
         this.parentStyle = data.style;
@@ -46,7 +47,10 @@ Options.prototype.extend = function(extension) {
         parentStyle: this.style,
         parentSize: this.size,
         phantom: this.phantom,
-        font: this.font
+        font: this.font,
+        // do not inherit id because it is supposed to be set explicitly to
+        // avoid reuse during nodes building
+        id: null
     };
 
     for (var key in extension) {
@@ -100,6 +104,15 @@ Options.prototype.withPhantom = function() {
 Options.prototype.withFont = function(font) {
     return this.extend({
         font: font || this.font
+    });
+};
+
+/**
+ * Create a new options objects with the given ID.
+ */
+Options.prototype.withId = function(id) {
+    return this.extend({
+        id: id
     });
 };
 

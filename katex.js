@@ -56,6 +56,12 @@ var renderToString = function(expression, options) {
     return buildTree(tree, expression, settings).toMarkup();
 };
 
+var renderTreeToString = function(tree, expression, options) {
+    var settings = new Settings(options);
+
+    return buildTree(tree, expression, settings).toMarkup();
+};
+
 /**
  * Parse an expression and return the parse tree.
  */
@@ -67,6 +73,7 @@ var generateParseTree = function(expression, options) {
 module.exports = {
     render: render,
     renderToString: renderToString,
+    renderTreeToString: renderTreeToString,
     /**
      * NOTE: This method is not currently recommended for public use.
      * The internal tree representation is unstable and is very likely

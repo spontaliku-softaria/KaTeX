@@ -1502,7 +1502,8 @@ var buildGroup = function(group, options) {
 
     if (groupTypes[group.type]) {
         // Call the groupTypes function
-        var groupNode = groupTypes[group.type](group, options);
+        var groupNode = groupTypes[group.type](group,
+            options.withId(group.id));
         var multiplier;
 
         // If the style changed between the parent and the current group,

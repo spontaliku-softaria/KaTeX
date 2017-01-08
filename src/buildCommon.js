@@ -47,6 +47,11 @@ var makeSymbol = function(value, fontFamily, mode, options, classes) {
 
     var metrics = fontMetrics.getCharacterMetrics(value, fontFamily);
 
+    var id = null;
+    if (options) {
+        id = options.id;
+    }
+
     var symbolNode;
     if (metrics) {
         var italic = metrics.italic;
@@ -55,13 +60,14 @@ var makeSymbol = function(value, fontFamily, mode, options, classes) {
         }
         symbolNode = new domTree.symbolNode(
             value, metrics.height, metrics.depth, italic, metrics.skew,
-            classes);
+            classes, null, id);
     } else {
         // TODO(emily): Figure out a good way to only print this in development
         typeof console !== "undefined" && console.warn(
             "No character metrics for '" + value + "' in style '" +
                 fontFamily + "'");
-        symbolNode = new domTree.symbolNode(value, 0, 0, 0, 0, classes);
+        symbolNode = new domTree.symbolNode(value, 0, 0, 0, 0, classes, null,
+            id);
     }
 
     if (options) {

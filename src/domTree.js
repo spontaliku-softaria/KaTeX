@@ -45,6 +45,9 @@ function span(classes, children, options) {
         if (options.getColor()) {
             this.style.color = options.getColor();
         }
+        if (options.id != null) {
+            this.attributes["katex-id"] = options.id;
+        }
     }
 }
 
@@ -194,7 +197,7 @@ var iCombinations = {
  * to a single text node, or a span with a single text node in it, depending on
  * whether it has CSS classes, styles, or needs italic correction.
  */
-function symbolNode(value, height, depth, italic, skew, classes, style) {
+function symbolNode(value, height, depth, italic, skew, classes, style, id) {
     this.value = value || "";
     this.height = height || 0;
     this.depth = depth || 0;
@@ -203,6 +206,10 @@ function symbolNode(value, height, depth, italic, skew, classes, style) {
     this.classes = classes || [];
     this.style = style || {};
     this.maxFontSize = 0;
+    this.attributes = {};
+    if (id != null) {
+        this.attributes["katex-id"] = id;
+    }
 
     // Mark CJK characters with specific classes so that we can specify which
     // fonts to use.  This allows us to render these characters with a serif
@@ -316,6 +323,15 @@ symbolNode.prototype.toMarkup = function() {
     if (styles) {
         needsSpan = true;
         markup += " style=\"" + utils.escape(styles) + "\"";
+    }
+
+    // Add the attributes
+    for (var attr in this.attributes) {
+        if (Object.prototype.hasOwnProperty.call(this.attributes, attr)) {
+            markup += " " + attr + "=\"";
+            markup += utils.escape(this.attributes[attr]);
+            markup += "\"";
+        }
     }
 
     var escaped = utils.escape(this.value);
