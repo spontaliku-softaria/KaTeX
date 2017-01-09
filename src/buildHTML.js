@@ -1104,7 +1104,7 @@ groupTypes.sqrt = function(group, options) {
     // it not to work.
     var body;
     if (inner.height === 0 && inner.depth === 0) {
-        body = makeSpan(null, null, options.withId(group.value.body.id));
+        body = makeSpan();
     } else {
         body = buildCommon.makeVList([
             {type: "elem", elem: inner},
