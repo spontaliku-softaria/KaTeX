@@ -40,7 +40,7 @@ function Options(data) {
  * from "extension" will be copied to the new options object.
  */
 Options.prototype.extend = function(extension) {
-    var data = {
+    const data = {
         style: this.style,
         size: this.size,
         color: this.color,
@@ -53,7 +53,7 @@ Options.prototype.extend = function(extension) {
         id: null
     };
 
-    for (var key in extension) {
+    for (const key in extension) {
         if (extension.hasOwnProperty(key)) {
             data[key] = extension[key];
         }
@@ -67,7 +67,7 @@ Options.prototype.extend = function(extension) {
  */
 Options.prototype.withStyle = function(style) {
     return this.extend({
-        style: style
+        style: style,
     });
 };
 
@@ -76,7 +76,7 @@ Options.prototype.withStyle = function(style) {
  */
 Options.prototype.withSize = function(size) {
     return this.extend({
-        size: size
+        size: size,
     });
 };
 
@@ -85,7 +85,7 @@ Options.prototype.withSize = function(size) {
  */
 Options.prototype.withColor = function(color) {
     return this.extend({
-        color: color
+        color: color,
     });
 };
 
@@ -94,7 +94,7 @@ Options.prototype.withColor = function(color) {
  */
 Options.prototype.withPhantom = function() {
     return this.extend({
-        phantom: true
+        phantom: true,
     });
 };
 
@@ -103,7 +103,7 @@ Options.prototype.withPhantom = function() {
  */
 Options.prototype.withFont = function(font) {
     return this.extend({
-        font: font || this.font
+        font: font || this.font,
     });
 };
 
@@ -128,7 +128,7 @@ Options.prototype.reset = function() {
  * A map of color names to CSS colors.
  * TODO(emily): Remove this when we have real macros
  */
-var colorMap = {
+const colorMap = {
     "katex-blue": "#6495ed",
     "katex-orange": "#ffa500",
     "katex-pink": "#ff00af",
@@ -184,7 +184,7 @@ var colorMap = {
     "katex-grayH": "#3b3e40",
     "katex-grayI": "#21242c",
     "katex-kaBlue": "#314453",
-    "katex-kaGreen": "#71B307"
+    "katex-kaGreen": "#71B307",
 };
 
 /**
