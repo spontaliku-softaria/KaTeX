@@ -326,7 +326,7 @@ symbolNode.prototype.toMarkup = function() {
     }
 
     // Add the attributes
-    for (var attr in this.attributes) {
+    for (let attr in this.attributes) { //eslint-disable-line prefer-const
         if (Object.prototype.hasOwnProperty.call(this.attributes, attr)) {
             markup += " " + attr + "=\"";
             markup += utils.escape(this.attributes[attr]);

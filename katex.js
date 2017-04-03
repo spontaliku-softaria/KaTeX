@@ -56,8 +56,8 @@ const renderToString = function(expression, options) {
     return buildTree(tree, expression, settings).toMarkup();
 };
 
-var renderTreeToString = function(tree, expression, options) {
-    var settings = new Settings(options);
+const renderTreeToString = function(tree, expression, options) {
+    const settings = new Settings(options);
 
     return buildTree(tree, expression, settings).toMarkup();
 };
@@ -83,5 +83,5 @@ module.exports = {
     __symbols: symbols,
     __functions: functions,
     ParseError: ParseError,
-    ParseNode: ParseNode
+    ParseNode: ParseNode,
 };

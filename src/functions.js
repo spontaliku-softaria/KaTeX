@@ -505,7 +505,7 @@ defineFunction([
         leftDelim: leftDelim,
         rightDelim: rightDelim,
         size: size,
-        func: context.funcName
+        func: context.funcName,
     };
 });
 
@@ -547,7 +547,7 @@ defineFunction([
         size: delimiterSizes[context.funcName].size,
         mclass: delimiterSizes[context.funcName].mclass,
         value: delim.value,
-        func: context.funcName
+        func: context.funcName,
     };
 });
 

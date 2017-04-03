@@ -50,7 +50,7 @@ Options.prototype.extend = function(extension) {
         font: this.font,
         // do not inherit id because it is supposed to be set explicitly to
         // avoid reuse during nodes building
-        id: null
+        id: null,
     };
 
     for (const key in extension) {
@@ -112,7 +112,7 @@ Options.prototype.withFont = function(font) {
  */
 Options.prototype.withId = function(id) {
     return this.extend({
-        id: id
+        id: id,
     });
 };
 
