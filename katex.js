@@ -7,15 +7,15 @@
  * errors in the expression, or errors in javascript handling.
  */
 
-const ParseError = require("./src/ParseError");
-const Settings = require("./src/Settings");
-const ParseNode = require("./src/parseData").ParseNode;
+import ParseError from "./src/ParseError";
+import Settings from "./src/Settings";
+import ParseNode from "./src/ParseNode";
 
-const buildTree = require("./src/buildTree");
-const parseTree = require("./src/parseTree");
-const utils = require("./src/utils");
-const symbols = require("./src/symbols");
-const functions = require("./src/functions");
+import buildTree from "./src/buildTree";
+import parseTree from "./src/parseTree";
+import utils from "./src/utils";
+import symbols from "./src/symbols";
+import functions from "./src/functions";
 
 /**
  * Parse and build an expression, and place that expression in the DOM node
