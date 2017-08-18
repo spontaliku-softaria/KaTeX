@@ -30,26 +30,27 @@ const createClass = function(classes) {
  * an inline style. It also contains information about its height, depth, and
  * maxFontSize.
  */
-class span{
+class span {
     constructor(classes, children, options) {
-    this.classes = classes || [];
-    this.children = children || [];
-    this.height = 0;
-    this.depth = 0;
-    this.maxFontSize = 0;
-    this.style = {};
-    this.attributes = {};
-    if (options) {
-        if (options.style.isTight()) {
-            this.classes.push("mtight");
+        this.classes = classes || [];
+        this.children = children || [];
+        this.height = 0;
+        this.depth = 0;
+        this.maxFontSize = 0;
+        this.style = {};
+        this.attributes = {};
+        if (options) {
+            if (options.style.isTight()) {
+                this.classes.push("mtight");
+            }
+            if (options.getColor()) {
+                this.style.color = options.getColor();
+            }
+            if (options.id != null) {
+                this.attributes["katex-id"] = options.id;
+            }
         }
-        if (options.getColor()) {
-            this.style.color = options.getColor();
-        }
-    if (options.id != null) {
-            this.attributes["katex-id"] = options.id;
-        }}
-}
+    }
 
     /**
      * Sets an arbitrary attribute on the span. Warning: use this wisely. Not all
@@ -210,10 +211,10 @@ class symbolNode {
         this.classes = classes || [];
         this.style = style || {};
         this.maxFontSize = 0;
-    this.attributes = {};
-    if (id != null) {
-        this.attributes["katex-id"] = id;
-    }
+        this.attributes = {};
+        if (id != null) {
+            this.attributes["katex-id"] = id;
+        }
 
         // Mark CJK characters with specific classes so that we can specify which
         // fonts to use.  This allows us to render these characters with a serif
@@ -329,21 +330,23 @@ class symbolNode {
             markup += " style=\"" + utils.escape(styles) + "\"";
         }
 
-    // Add the attributes
-    for (let attr in this.attributes) { //eslint-disable-line prefer-const
-        if (Object.prototype.hasOwnProperty.call(this.attributes, attr)) {
-            markup += " " + attr + "=\"";
-            markup += utils.escape(this.attributes[attr]);
-            markup += "\"";
+        // Add the attributes
+        for (let attr in this.attributes) { //eslint-disable-line prefer-const
+            if (Object.prototype.hasOwnProperty.call(this.attributes, attr)) {
+                markup += " " + attr + "=\"";
+                markup += utils.escape(this.attributes[attr]);
+                markup += "\"";
+            }
         }
-    }const escaped = utils.escape(this.value);
-    if (needsSpan) {
-        markup += ">";
-        markup += escaped;
-        markup += "</span>";
-        return markup;
-    } else {
-        return escaped;}
+        const escaped = utils.escape(this.value);
+        if (needsSpan) {
+            markup += ">";
+            markup += escaped;
+            markup += "</span>";
+            return markup;
+        } else {
+            return escaped;
+        }
     }
 }
 

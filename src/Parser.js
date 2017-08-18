@@ -427,70 +427,73 @@ class Parser {
 
         const func = start.result;
 
-    if (func === "\\left") {
-        // If we see a left:
-        // Parse the entire left function (including the delimiter)
-        const left = this.parseFunction(start);
-        // Parse out the implicit body
-        ++this.leftrightDepth;
-        const body = this.parseExpression(false);
-        --this.leftrightDepth;
-        // Check the next token
-        this.expect("\\right", false);
-        const right = this.parseFunction();
-        return new ParseNode("leftright", {
-            body: body,
-            left: left.value.value,
-            right: right.value.value,
-        }, this.mode);
-    } else if (func === "\\begin") {
-        // begin...end is similar to left...right
-        const begin = this.parseFunction(start);
-        const envName = begin.value.name;
-        if (!environments.hasOwnProperty(envName)) {
-            throw new ParseError(
-                "No such environment: " + envName, begin.value.nameGroup);
-        }
-        // Build the environment object. Arguments and other information will
-        // be made available to the begin and end methods using properties.
-        const env = environments[envName];
-        const args = this.parseArguments("\\begin{" + envName + "}", env);
-        const context = {
-            mode: this.mode,
-            envName: envName,
-            parser: this,
-            positions: args.pop(),
-        };
-        const result = env.handler(context, args);
-        this.expect("\\end", false);
-        const endNameToken = this.nextToken;
-        const end = this.parseFunction();
-        if (end.value.name !== envName) {
-            throw new ParseError(
-                "Mismatch: \\begin{" + envName + "} matched " +
-                "by \\end{" + end.value.name + "}",
-                endNameToken);
-        }
-        result.position = end.position;
-        return result;
-    } else if (utils.contains(Parser.sizeFuncs, func)) {
-        // If we see a sizing function, parse out the implicit body
-        this.consumeSpaces();const body = this.parseExpression(false);
-        return new ParseNode("sizing", {
-            // Figure out what size to use based on the list of functions above
-            size: utils.indexOf(Parser.sizeFuncs, func) + 1,
-            value: body,
-        func: func,}, this.mode);
-    } else if (utils.contains(Parser.styleFuncs, func)) {
-        // If we see a styling function, parse out the implicit body
-        this.consumeSpaces();const body = this.parseExpression(true);
-        return new ParseNode("styling", {
-            // Figure out what style to use by pulling out the style from
-            // the function name
-            style: func.slice(1, func.length - 5),
-            value: body,
-        }, this.mode);
-    } else if (func in Parser.oldFontFuncs) {
+        if (func === "\\left") {
+            // If we see a left:
+            // Parse the entire left function (including the delimiter)
+            const left = this.parseFunction(start);
+            // Parse out the implicit body
+            ++this.leftrightDepth;
+            const body = this.parseExpression(false);
+            --this.leftrightDepth;
+            // Check the next token
+            this.expect("\\right", false);
+            const right = this.parseFunction();
+            return new ParseNode("leftright", {
+                body: body,
+                left: left.value.value,
+                right: right.value.value,
+            }, this.mode);
+        } else if (func === "\\begin") {
+            // begin...end is similar to left...right
+            const begin = this.parseFunction(start);
+            const envName = begin.value.name;
+            if (!environments.hasOwnProperty(envName)) {
+                throw new ParseError(
+                    "No such environment: " + envName, begin.value.nameGroup);
+            }
+            // Build the environment object. Arguments and other information will
+            // be made available to the begin and end methods using properties.
+            const env = environments[envName];
+            const args = this.parseArguments("\\begin{" + envName + "}", env);
+            const context = {
+                mode: this.mode,
+                envName: envName,
+                parser: this,
+                positions: args.pop(),
+            };
+            const result = env.handler(context, args);
+            this.expect("\\end", false);
+            const endNameToken = this.nextToken;
+            const end = this.parseFunction();
+            if (end.value.name !== envName) {
+                throw new ParseError(
+                    "Mismatch: \\begin{" + envName + "} matched " +
+                    "by \\end{" + end.value.name + "}",
+                    endNameToken);
+            }
+            result.position = end.position;
+            return result;
+        } else if (utils.contains(Parser.sizeFuncs, func)) {
+            // If we see a sizing function, parse out the implicit body
+            this.consumeSpaces();
+            const body = this.parseExpression(false);
+            return new ParseNode("sizing", {
+                // Figure out what size to use based on the list of functions above
+                size: utils.indexOf(Parser.sizeFuncs, func) + 1,
+                value: body,
+                func: func,
+            }, this.mode);
+        } else if (utils.contains(Parser.styleFuncs, func)) {
+            // If we see a styling function, parse out the implicit body
+            this.consumeSpaces();
+            const body = this.parseExpression(true);
+            return new ParseNode("styling", {
+                // Figure out what style to use by pulling out the style from
+                // the function name
+                style: func.slice(1, func.length - 5),
+                value: body,
+            }, this.mode);
+        } else if (func in Parser.oldFontFuncs) {
             const style = Parser.oldFontFuncs[func];
             // If we see an old font function, parse out the implicit body
             this.consumeSpaces();
@@ -532,9 +535,10 @@ class Parser {
                 style: "text",
                 value: body,
             }, "math");
-        } else{
-        // Defer to parseFunction if it's not a function we handle
-        return this.parseFunction(start);}
+        } else {
+            // Defer to parseFunction if it's not a function we handle
+            return this.parseFunction(start);
+        }
     }
 
     /**

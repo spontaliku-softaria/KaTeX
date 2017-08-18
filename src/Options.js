@@ -55,21 +55,22 @@ class Options {
         this.id = data.id;
     }
 
-/**
- * Returns a new options object with the same properties as "this".  Properties
- * from "extension" will be copied to the new options object.
- */
-extend (extension) {
-    const data = {
-        style: this.style,
-        size: this.size,
-        textSize: this.textSize,
-        color: this.color,
-        phantom: this.phantom,
-        font: this.font,
-    // do not inherit id because it is supposed to be set explicitly to
-        // avoid reuse during nodes building
-        id: null,};
+    /**
+     * Returns a new options object with the same properties as "this".  Properties
+     * from "extension" will be copied to the new options object.
+     */
+    extend(extension) {
+        const data = {
+            style: this.style,
+            size: this.size,
+            textSize: this.textSize,
+            color: this.color,
+            phantom: this.phantom,
+            font: this.font,
+            // do not inherit id because it is supposed to be set explicitly to
+            // avoid reuse during nodes building
+            id: null,
+        };
 
         for (const key in extension) {
             if (extension.hasOwnProperty(key)) {
@@ -166,13 +167,13 @@ extend (extension) {
     }
 
     /**
- * Create a new options objects with the given ID.
- */
-Options.prototype.withId = function(id) {
-    return this.extend({
-        id: id,
-    });
-};
+     * Create a new options objects with the given ID.
+     */
+    withId(id) {
+        return this.extend({
+            id: id,
+        });
+    }
 
 /**
      * Return the CSS sizing classes required to switch from enclosing options
