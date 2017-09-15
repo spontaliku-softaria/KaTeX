@@ -7,6 +7,7 @@
  * called, to produce a final HTML tree.
  */
 
+//@flow
 import ParseError from "./ParseError";
 import Style from "./Style";
 
@@ -16,6 +17,7 @@ import domTree from "./domTree";
 import { calculateSize } from "./units";
 import utils from "./utils";
 import stretchy from "./stretchy";
+import * as parseNodes from "./ParseNode";
 
 const isSpace = function(node) {
     return node instanceof domTree.span && node.classes[0] === "mspace";
@@ -179,11 +181,11 @@ const getTypeOfDomTree = function(node) {
  * its inner element should handle the superscripts and subscripts instead of
  * handling them itself.
  */
-const shouldHandleSupSub = function(group, options) {
-    if (!group.value.base) {
+const shouldHandleSupSub = function(group: parseNodes.Supsub, options) {
+    if (!group.base) {
         return false;
     } else {
-        const base = group.value.base;
+        const base = group.base;
         if (base.type === "op") {
             // Operators handle supsubs differently when they have limits
             // (e.g. `\displaystyle\sum_2^3`)
@@ -193,8 +195,8 @@ const shouldHandleSupSub = function(group, options) {
         } else if (base.type === "accent") {
             return isCharacterBox(base.value.base);
         } else if (base.type === "horizBrace") {
-            const isSup = (group.value.sub ? false : true);
-            return (isSup === base.value.isOver);
+            const isSup = (group.sub ? false : true);
+            return (isSup === base.instance(parseNodes.HorizontalBrace).isOver);
         } else {
             return null;
         }
@@ -330,17 +332,17 @@ groupTypes.color = function(group, options) {
     return new buildCommon.makeFragment(elements);
 };
 
-groupTypes.supsub = function(group, options) {
+groupTypes.supsub = function(group: parseNodes.Supsub, options) {
     // Superscript and subscripts are handled in the TeXbook on page
     // 445-446, rules 18(a-f).
 
     // Here is where we defer to the inner group if it should handle
     // superscripts and subscripts itself.
     if (shouldHandleSupSub(group, options)) {
-        return groupTypes[group.value.base.type](group, options);
+        return groupTypes[group.base.type](group, options);
     }
 
-    const base = buildGroup(group.value.base, options);
+    const base = buildGroup(group.base, options);
     let supm;
     let subm;
 
@@ -351,19 +353,19 @@ groupTypes.supsub = function(group, options) {
     let supShift = 0;
     let subShift = 0;
 
-    if (group.value.sup) {
+    if (group.sup) {
         newOptions = options.havingStyle(options.style.sup());
-        supm = buildGroup(group.value.sup, newOptions, options);
-        if (!isCharacterBox(group.value.base)) {
+        supm = buildGroup(group.sup, newOptions, options);
+        if (!isCharacterBox(group.base)) {
             supShift = base.height - newOptions.fontMetrics().supDrop
                 * newOptions.sizeMultiplier / options.sizeMultiplier;
         }
     }
 
-    if (group.value.sub) {
+    if (group.sub) {
         newOptions = options.havingStyle(options.style.sub());
-        subm = buildGroup(group.value.sub, newOptions, options);
-        if (!isCharacterBox(group.value.base)) {
+        subm = buildGroup(group.sub, newOptions, options);
+        if (!isCharacterBox(group.base)) {
             subShift = base.depth + newOptions.fontMetrics().subDrop
                 * newOptions.sizeMultiplier / options.sizeMultiplier;
         }
@@ -386,7 +388,7 @@ groupTypes.supsub = function(group, options) {
         (0.5 / metrics.ptPerEm) / multiplier + "em";
 
     let supsub;
-    if (!group.value.sup) {
+    if (!group.sup) {
         // Rule 18b
         subShift = Math.max(
             subShift, metrics.sub1,
@@ -401,7 +403,7 @@ groupTypes.supsub = function(group, options) {
         }
 
         supsub = buildCommon.makeVList(vlistElem, "shift", subShift, options);
-    } else if (!group.value.sub) {
+    } else if (!group.sub) {
         // Rule 18c, d
         supShift = Math.max(supShift, minSupShift,
             supm.depth + 0.25 * metrics.xHeight);

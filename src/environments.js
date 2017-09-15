@@ -1,5 +1,5 @@
 // @flow
-import ParseNode from "./ParseNode";
+import * as ParseNode from "./ParseNode";
 import ParseError from "./ParseError";
 
 import type Parser from "./Parser";
@@ -84,12 +84,9 @@ function parseArray(
     const rowGaps = [];
     for (;;) {
         let cell = parser.parseExpression(false, null);
-        cell = new ParseNode("ordgroup", cell, parser.mode);
+        cell = new ParseNode.Ordgroup(parser.mode, cell);
         if (style) {
-            cell = new ParseNode("styling", {
-                style: style,
-                value: [cell],
-            }, parser.mode);
+            cell = new ParseNode.Styling(parser.mode, [cell], style);
         }
         row.push(cell);
         const next = parser.nextToken.text;
@@ -109,7 +106,16 @@ function parseArray(
     }
     result.body = body;
     result.rowGaps = rowGaps;
-    return new ParseNode(result.type, result, parser.mode);
+
+    return new ParseNode.ArrayNode(
+        parser.mode,
+        result.hskipBeforeAndAfter,
+        result.arraystretch,
+        result.addJot,
+        result.cols,
+        result.body,
+        result.rowGaps
+    );
 }
 
 
@@ -206,12 +212,14 @@ defineEnvironment([
         hskipBeforeAndAfter: false, // \hskip -\arraycolsep in amsmath
     };
     res = parseArray(context.parser, res, dCellStyle(context.envName));
-    if (delimiters) {
-        res = new ParseNode("leftright", {
-            body: [res],
-            left: delimiters[0],
-            right: delimiters[1],
-        }, context.mode);
+    if (context.envName !== "matrix") {
+        return new ParseNode.LeftRight(
+            context.mode,
+            [res],
+            delimiters[0],
+            delimiters[1],
+            context.envName
+        );
     }
     return res;
 });
@@ -246,12 +254,12 @@ defineEnvironment([
         }],
     };
     res = parseArray(context.parser, res, dCellStyle(context.envName));
-    res = new ParseNode("leftright", {
-        body: [res],
-        left: "\\{",
-        right: ".",
-    }, context.mode);
-    return res;
+
+    return new ParseNode.LeftRight(
+        context.mode,
+        [res],
+        context.envName
+    );
 });
 
 // An aligned environment is like the align* environment
@@ -270,7 +278,7 @@ defineEnvironment(["aligned"], {
     // At the same time, prepend empty group {} at beginning of every second
     // cell in each row (starting with second cell) so that operators become
     // binary.  This behavior is implemented in amsmath's \start@aligned.
-    const emptyGroup = new ParseNode("ordgroup", [], context.mode);
+    const emptyGroup = new ParseNode.Ordgroup(context.mode);
     let numCols = 0;
     res.value.body.forEach(function(row) {
         for (let i = 1; i < row.length; i += 2) {

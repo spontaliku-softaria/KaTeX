@@ -3,6 +3,7 @@
 /* global expect: false */
 /* global it: false */
 /* global describe: false */
+//@flow
 
 import buildMathML from "../src/buildMathML";
 import buildTree from "../src/buildTree";
@@ -12,6 +13,7 @@ import parseTree from "../src/parseTree";
 import Options from "../src/Options";
 import Settings from "../src/Settings";
 import Style from "../src/Style";
+import {Supsub} from "../src/ParseNode";
 
 const defaultSettings = new Settings({});
 const defaultOptions = new Options({
@@ -342,39 +344,39 @@ describe("A subscript and superscript parser", function() {
     });
 
     it("should produce supsubs for superscript", function() {
-        const parse = getParsed("x^2")[0];
+        const parse: Supsub = getParsed("x^2")[0];
 
         expect(parse.type).toBe("supsub");
-        expect(parse.value.base).toBeDefined();
-        expect(parse.value.sup).toBeDefined();
-        expect(parse.value.sub).toBeUndefined();
+        expect(parse.base).toBeDefined();
+        expect(parse.sup).toBeDefined();
+        expect(parse.sub).toBeUndefined();
     });
 
     it("should produce supsubs for subscript", function() {
-        const parse = getParsed("x_3")[0];
+        const parse: Supsub = getParsed("x_3")[0];
 
         expect(parse.type).toBe("supsub");
-        expect(parse.value.base).toBeDefined();
-        expect(parse.value.sub).toBeDefined();
-        expect(parse.value.sup).toBeUndefined();
+        expect(parse.base).toBeDefined();
+        expect(parse.sub).toBeDefined();
+        expect(parse.sup).toBeUndefined();
     });
 
     it("should produce supsubs for ^_", function() {
-        const parse = getParsed("x^2_3")[0];
+        const parse: Supsub = getParsed("x^2_3")[0];
 
         expect(parse.type).toBe("supsub");
-        expect(parse.value.base).toBeDefined();
-        expect(parse.value.sup).toBeDefined();
-        expect(parse.value.sub).toBeDefined();
+        expect(parse.base).toBeDefined();
+        expect(parse.sup).toBeDefined();
+        expect(parse.sub).toBeDefined();
     });
 
     it("should produce supsubs for _^", function() {
-        const parse = getParsed("x_3^2")[0];
+        const parse: Supsub = getParsed("x_3^2")[0];
 
         expect(parse.type).toBe("supsub");
-        expect(parse.value.base).toBeDefined();
-        expect(parse.value.sup).toBeDefined();
-        expect(parse.value.sub).toBeDefined();
+        expect(parse.base).toBeDefined();
+        expect(parse.sup).toBeDefined();
+        expect(parse.sub).toBeDefined();
     });
 
     it("should produce the same thing regardless of order", function() {

@@ -16,7 +16,8 @@ export type FunctionContext = {|
 |};
 
 // TODO: Enumerate all allowed output types.
-export type FunctionHandler = (context: FunctionContext, args: ParseNode[]) => *;
+export type FunctionHandler = (context: FunctionContext, args: ParseNode[]) =>
+    *;
 
 export type FunctionPropSpec = {
     // The number of arguments the function takes.
@@ -160,7 +161,7 @@ export default function defineFunction({
 
 // Since the corresponding buildHTML/buildMathML function expects a
 // list of elements, we normalize for different kinds of arguments
-export const ordargument = function(arg: ParseNode) {
+export const ordargument = function(arg: ParseNode): ParseNode[] {
     if (arg.type === "ordgroup") {
         return arg.value;
     } else {

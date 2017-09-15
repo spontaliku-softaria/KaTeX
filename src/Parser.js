@@ -6,7 +6,7 @@ import symbols from "./symbols";
 import utils from "./utils";
 import { validUnit } from "./units";
 import { cjkRegex } from "./unicodeRegexes";
-import ParseNode from "./ParseNode";
+import * as parseNodes from "./ParseNode";
 import ParseError from "./ParseError";
 
 /**
@@ -217,17 +217,18 @@ class Parser {
             if (numerBody.length === 1 && numerBody[0].type === "ordgroup") {
                 numerNode = numerBody[0];
             } else {
-                numerNode = new ParseNode("ordgroup", numerBody, this.mode);
+                numerNode = new parseNodes.Ordgroup(this.mode, numerBody);
             }
 
             if (denomBody.length === 1 && denomBody[0].type === "ordgroup") {
                 denomNode = denomBody[0];
             } else {
-                denomNode = new ParseNode("ordgroup", denomBody, this.mode);
+                denomNode = new parseNodes.Ordgroup(this.mode, denomBody);
             }
 
             const value = this.callFunction(funcName, [numerNode, denomNode]);
-            return [new ParseNode(value.type, value, this.mode)];
+            //TODO-AST: find out concrete node type
+            return [new parseNodes.ParseNode(value.type, this.mode, value)];
         } else {
             return body;
         }
@@ -279,25 +280,13 @@ class Parser {
         const textordArray = [];
 
         for (let i = 0; i < text.length; i++) {
-            textordArray.push(new ParseNode("textord", text[i], "text"));
+            textordArray.push(new parseNodes.Textord("text", text[i]));
         }
 
-        const textNode = new ParseNode(
-            "text",
-            {
-                body: textordArray,
-                type: "text",
-            },
-            this.mode);
+        const textNode = new parseNodes.Text(this.mode, textordArray, "text");
 
-        const colorNode = new ParseNode(
-            "color",
-            {
-                color: this.settings.errorColor,
-                value: [textNode],
-                type: "color",
-            },
-            this.mode);
+        const colorNode = new parseNodes.Color(this.mode, [textNode],
+            this.settings.errorColor);
 
         this.consume();
         return colorNode;
@@ -355,7 +344,7 @@ class Parser {
                 if (superscript) {
                     throw new ParseError("Double superscript", lex);
                 }
-                const prime = new ParseNode("textord", "\\prime", this.mode);
+                const prime = new parseNodes.Textord(this.mode, "\\prime");
 
                 // Many primes can be grouped together, so we handle this here
                 const primes = [prime];
@@ -372,7 +361,7 @@ class Parser {
                     primes.push(this.handleSupSubscript("superscript"));
                 }
                 // Put everything into an ordgroup as the superscript
-                superscript = new ParseNode("ordgroup", primes, this.mode);
+                superscript = new parseNodes.Ordgroup(this.mode, primes);
             } else {
                 // If it wasn't ^, _, or ', stop parsing super/subscripts
                 break;
@@ -381,11 +370,8 @@ class Parser {
 
         if (superscript || subscript) {
             // If we got either a superscript or subscript, create a supsub
-            return new ParseNode("supsub", {
-                base: base,
-                sup: superscript,
-                sub: subscript,
-            }, this.mode);
+            return new parseNodes.Supsub(this.mode, base, superscript,
+                subscript);
         } else {
             // Otherwise return the original body
             return base;
@@ -403,16 +389,6 @@ class Parser {
         "\\displaystyle", "\\textstyle", "\\scriptstyle", "\\scriptscriptstyle",
     ];
 
-    // Old font functions
-    static oldFontFuncs = {
-        "\\rm": "mathrm",
-        "\\sf": "mathsf",
-        "\\tt": "mathtt",
-        "\\bf": "mathbf",
-        "\\it": "mathit",
-        //"\\sl": "textsl",
-        //"\\sc": "textsc",
-    };
 
     /**
      * Parses an implicit group, which is a group that starts at the end of a
@@ -446,7 +422,7 @@ class Parser {
             // Check the next token
             this.expect("\\right", false);
             const right = this.parseFunction();
-            return new ParseNode("leftright", {
+            return new parseNodes.ParseNode("leftright", {
                 body: body,
                 left: left.value.value,
                 right: right.value.value,
@@ -484,49 +460,46 @@ class Parser {
             // If we see a sizing function, parse out the implicit body
             this.consumeSpaces();
             const body = this.parseExpression(false);
-            return new ParseNode("sizing", {
-                // Figure out what size to use based on the list of functions above
-                size: utils.indexOf(Parser.sizeFuncs, func) + 1,
-                value: body,
-            }, this.mode);
+
+            return new parseNodes.Sizing(
+                this.mode,
+                body,
+                // Figure out what size to use based on the list of functions
+                // above
+                utils.indexOf(Parser.sizeFuncs, func) + 1
+            );
         } else if (utils.contains(Parser.styleFuncs, func)) {
             // If we see a styling function, parse out the implicit body
             this.consumeSpaces();
             const body = this.parseExpression(true);
-            return new ParseNode("styling", {
+
+            return new parseNodes.Styling(
+                this.mode,
+                body,
                 // Figure out what style to use by pulling out the style from
                 // the function name
-                style: func.slice(1, func.length - 5),
-                value: body,
-            }, this.mode);
-        } else if (func in Parser.oldFontFuncs) {
-            const style = Parser.oldFontFuncs[func];
+                func.slice(1, func.length - 5)
+            );
+        } else if (func in parseNodes.oldFontFuncs) {
             // If we see an old font function, parse out the implicit body
             this.consumeSpaces();
             const body = this.parseExpression(true);
-            if (style.slice(0, 4) === 'text') {
-                return new ParseNode("text", {
-                    style: style,
-                    body: new ParseNode("ordgroup", body, this.mode),
-                }, this.mode);
-            } else {
-                return new ParseNode("font", {
-                    font: style,
-                    body: new ParseNode("ordgroup", body, this.mode),
-                }, this.mode);
-            }
+
+            return new parseNodes.Font(
+                this.mode,
+                new parseNodes.Ordgroup(this.mode, body),
+                func
+            );
         } else if (func === "\\color") {
             // If we see a styling function, parse out the implicit body
             const color = this.parseColorGroup(false);
             if (!color) {
                 throw new ParseError("\\color not followed by color");
             }
-            const body = this.parseExpression(true);
-            return new ParseNode("color", {
-                type: "color",
-                color: color.result.value,
-                value: body,
-            }, this.mode);
+
+            color.result.body = this.parseExpression(true);
+
+            return color.result;
         } else if (func === "$") {
             if (this.mode === "math") {
                 throw new ParseError("$ within math mode");
@@ -537,10 +510,7 @@ class Parser {
             const body = this.parseExpression(false, "$");
             this.expect("$", true);
             this.switchMode(outerMode);
-            return new ParseNode("styling", {
-                style: "text",
-                value: body,
-            }, "math");
+            return new parseNodes.Styling("math", body, "text");
         } else {
             // Defer to parseFunction if it's not a function we handle
             return this.parseFunction(start);
@@ -577,8 +547,7 @@ class Parser {
 
                 const args = this.parseArguments(func, funcData);
                 const token = baseGroup.token;
-                const result = this.callFunction(func, args, token);
-                return new ParseNode(result.type, result, this.mode);
+                return this.callFunction(func, args, token);
             } else {
                 return baseGroup.result;
             }
@@ -779,7 +748,7 @@ class Parser {
             throw new ParseError("Invalid color: '" + res.text + "'", res);
         }
         return new ParseFuncOrArgument(
-            new ParseNode("color", match[0], this.mode),
+            new parseNodes.Color(this.mode, null, match[0]),
             false);
     }
 
@@ -809,7 +778,7 @@ class Parser {
             throw new ParseError("Invalid unit: '" + data.unit + "'", res);
         }
         return new ParseFuncOrArgument(
-            new ParseNode("size", data, this.mode),
+            new parseNodes.ParseNode("size", data, this.mode),
             false);
     }
 
@@ -837,10 +806,11 @@ class Parser {
             if (this.mode === "text") {
                 this.formLigatures(expression);
             }
-            return new ParseFuncOrArgument(
-                new ParseNode("ordgroup", expression, this.mode,
-                    firstToken, lastToken),
-                false);
+
+            const ordgroup = new parseNodes.Ordgroup(this.mode, expression);
+            ordgroup.setTokens(firstToken, lastToken);
+
+            return new ParseFuncOrArgument(ordgroup, false);
         } else {
             // Otherwise, just return a nucleus, or nothing for an optional group
             return optional ? null : this.parseSymbol();
@@ -864,18 +834,24 @@ class Parser {
             const v = a.value;
             if (v === "-" && group[i + 1].value === "-") {
                 if (i + 1 < n && group[i + 2].value === "-") {
-                    group.splice(i, 3, new ParseNode(
-                        "textord", "---", "text", a, group[i + 2]));
+                    const textord = new parseNodes.Textord("text", "---");
+                    textord.setTokens(a, group[i + 2]);
+
+                    group.splice(i, 3, textord);
                     n -= 2;
                 } else {
-                    group.splice(i, 2, new ParseNode(
-                        "textord", "--", "text", a, group[i + 1]));
+                    const textord = new parseNodes.Textord("text", "--");
+                    textord.setTokens(a, group[i + 1]);
+
+                    group.splice(i, 2, textord);
                     n -= 1;
                 }
             }
             if ((v === "'" || v === "`") && group[i + 1].value === v) {
-                group.splice(i, 2, new ParseNode(
-                    "textord", v + v, "text", a, group[i + 1]));
+                const textord = new parseNodes.Textord("text", v + v);
+                textord.setTokens(a, group[i + 1]);
+
+                group.splice(i, 2, textord);
                 n -= 1;
             }
         }
@@ -894,32 +870,31 @@ class Parser {
             this.consume();
             // If there exists a function with this name, we return the function and
             // say that it is a function.
-            return new ParseFuncOrArgument(
-                nucleus.text,
-                true, nucleus);
+            return new ParseFuncOrArgument(nucleus.text, true, nucleus);
         } else if (symbols[this.mode][nucleus.text]) {
             this.consume();
             // Otherwise if this is a no-argument function, find the type it
             // corresponds to in the symbols map
-            return new ParseFuncOrArgument(
-                new ParseNode(symbols[this.mode][nucleus.text].group,
-                            nucleus.text, this.mode, nucleus),
-                false, nucleus);
+            const symbol = new parseNodes.ParseNode(
+                symbols[this.mode][nucleus.text].group,
+                nucleus.text, this.mode, nucleus);
+
+            return new ParseFuncOrArgument(symbol, false, nucleus);
         } else if (this.mode === "text" && cjkRegex.test(nucleus.text)) {
             this.consume();
-            return new ParseFuncOrArgument(
-                new ParseNode("textord", nucleus.text, this.mode, nucleus),
-                false, nucleus);
+
+            const textord = parseNodes.Textord(this.mode, nucleus.text);
+            textord.setTokens(nucleus);
+
+            return new ParseFuncOrArgument(textord, false, nucleus);
         } else if (nucleus.text === "$") {
-            return new ParseFuncOrArgument(
-                nucleus.text,
-                false, nucleus);
+            return new ParseFuncOrArgument(nucleus.text, false, nucleus);
         } else {
             return null;
         }
     }
 }
 
-Parser.prototype.ParseNode = ParseNode;
+Parser.prototype.ParseNode = parseNodes.ParseNode;
 
 module.exports = Parser;

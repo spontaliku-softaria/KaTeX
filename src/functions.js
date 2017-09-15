@@ -1,8 +1,7 @@
 // @flow
 /** Include this to ensure that all functions are defined. */
-import utils from "./utils";
 import ParseError from "./ParseError";
-import ParseNode from "./ParseNode";
+import * as ParseNode from "./ParseNode";
 import {
     default as _defineFunction,
     ordargument,
@@ -31,22 +30,14 @@ defineFunction(["\\sqrt"], {
     numArgs: 1,
     numOptionalArgs: 1,
 }, function(context, args) {
-    const index = args[0];
-    const body = args[1];
-    return {
-        type: "sqrt",
-        body: body,
-        index: index,
-    };
+    return new ParseNode.Sqrt(
+        context.parser.mode,
+        args[1],
+        args[0]
+    );
 });
 
 // Non-mathy text, possibly in a font
-const textFunctionFonts = {
-    "\\text": undefined, "\\textrm": "mathrm", "\\textsf": "mathsf",
-    "\\texttt": "mathtt", "\\textnormal": "mathrm", "\\textbf": "mathbf",
-    "\\textit": "textit",
-};
-
 defineFunction([
     "\\text", "\\textrm", "\\textsf", "\\texttt", "\\textnormal",
     "\\textbf", "\\textit",
@@ -56,12 +47,11 @@ defineFunction([
     greediness: 2,
     allowedInText: true,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "text",
-        body: ordargument(body),
-        font: textFunctionFonts[context.funcName],
-    };
+    return new ParseNode.Text(
+        context.parser.mode,
+        ordargument(args[0]),
+        context.funcName
+    );
 });
 
 // A two-argument custom color
@@ -71,13 +61,11 @@ defineFunction(["\\textcolor"], {
     greediness: 3,
     argTypes: ["color", "original"],
 }, function(context, args) {
-    const color = args[0];
-    const body = args[1];
-    return {
-        type: "color",
-        color: color.value,
-        value: ordargument(body),
-    };
+    return new ParseNode.Color(
+        context.parser.mode,
+        ordargument(args[1]),
+        args[0].value
+    );
 });
 
 // \color is handled in Parser.js's parseImplicitGroup
@@ -92,22 +80,20 @@ defineFunction(["\\color"], {
 defineFunction(["\\overline"], {
     numArgs: 1,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "overline",
-        body: body,
-    };
+    return new ParseNode.Overline(
+        context.parser.mode,
+        args[0]
+    );
 });
 
 // An underline
 defineFunction(["\\underline"], {
     numArgs: 1,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "underline",
-        body: body,
-    };
+    return new ParseNode.Underline(
+        context.parser.mode,
+        args[0]
+    );
 });
 
 // A box of the width and height
@@ -116,15 +102,12 @@ defineFunction(["\\rule"], {
     numOptionalArgs: 1,
     argTypes: ["size", "size", "size"],
 }, function(context, args) {
-    const shift = args[0];
-    const width = args[1];
-    const height = args[2];
-    return {
-        type: "rule",
-        shift: shift && shift.value,
-        width: width.value,
-        height: height.value,
-    };
+    return new ParseNode.Rule(
+        context.parser.mode,
+        args[1].value,
+        args[2].value,
+        args[0] && args[0].value
+    );
 });
 
 // TODO: In TeX, \mkern only accepts mu-units, and \kern does not accept
@@ -133,19 +116,19 @@ defineFunction(["\\kern", "\\mkern"], {
     numArgs: 1,
     argTypes: ["size"],
 }, function(context, args) {
-    return {
-        type: "kern",
-        dimension: args[0].value,
-    };
+    return new ParseNode.Kern(
+        context.parser.mode,
+        args[0].value
+    );
 });
 
 // A KaTeX logo
 defineFunction(["\\KaTeX"], {
     numArgs: 0,
 }, function(context) {
-    return {
-        type: "katex",
-    };
+    return new ParseNode.KatexSymbol(
+        context.parser.mode
+    );
 });
 
 import "./functions/phantom";
@@ -157,69 +140,58 @@ defineFunction([
 ], {
     numArgs: 1,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "mclass",
-        mclass: "m" + context.funcName.substr(5),
-        value: ordargument(body),
-    };
+    return new ParseNode.MathClass(
+        context.parser.mode,
+        ordargument(args[0]),
+        context.funcName);
 });
 
 // Build a relation by placing one symbol on top of another
 defineFunction(["\\stackrel"], {
     numArgs: 2,
 }, function(context, args) {
-    const top = args[0];
-    const bottom = args[1];
+    const bottom = new ParseNode.Operation(
+        args[1].mode,
+        ordargument(args[1]),
+        context.funcName,
+        true,
+        false);
+    bottom.alwaysHandleSupSub = true;
 
-    const bottomop = new ParseNode("op", {
-        type: "op",
-        limits: true,
-        alwaysHandleSupSub: true,
-        symbol: false,
-        value: ordargument(bottom),
-    }, bottom.mode);
+    const supsub = new ParseNode.Supsub(
+        args[0].mode,
+        bottom,
+        args[0],
+        null
+    );
 
-    const supsub = new ParseNode("supsub", {
-        base: bottomop,
-        sup: top,
-        sub: null,
-    }, top.mode);
-
-    return {
-        type: "mclass",
-        mclass: "mrel",
-        value: [supsub],
-    };
+    return new ParseNode.MathClass(
+        context.parser.mode,
+        [supsub],
+        "\\mathrel"
+    );
 });
 
 // \mod-type functions
 defineFunction(["\\bmod"], {
     numArgs: 0,
 }, function(context, args) {
-    return {
-        type: "mod",
-        modType: "bmod",
-        value: null,
-    };
+    return new ParseNode.Mod(
+        context.parser.mode,
+        null,
+        "bmod"
+    );
 });
 
 defineFunction(["\\pod", "\\pmod", "\\mod"], {
     numArgs: 1,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "mod",
-        modType: context.funcName.substr(1),
-        value: ordargument(body),
-    };
+    return new ParseNode.Mod(
+        context.parser.mode,
+        ordargument(args[0]),
+        context.funcName.substr(1)
+    );
 });
-
-const fontAliases = {
-    "\\Bbb": "\\mathbb",
-    "\\bold": "\\mathbf",
-    "\\frak": "\\mathfrak",
-};
 
 // Single-argument color functions
 defineFunction([
@@ -241,12 +213,11 @@ defineFunction([
     allowedInText: true,
     greediness: 3,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "color",
-        color: "katex-" + context.funcName.slice(1),
-        value: ordargument(body),
-    };
+    return new ParseNode.Color(
+        context.parser.mode,
+        ordargument(args[0]),
+        "katex-" + context.funcName.slice(1)
+    );
 });
 
 // There are 2 flags for operators; whether they produce limits in
@@ -263,12 +234,13 @@ defineFunction([
 ], {
     numArgs: 0,
 }, function(context) {
-    return {
-        type: "op",
-        limits: false,
-        symbol: false,
-        body: context.funcName,
-    };
+    return new ParseNode.Operation(
+        context.parser.mode,
+        null,
+        context.funcName,
+        false,
+        false
+    );
 });
 
 // Limits, not symbols
@@ -278,12 +250,13 @@ defineFunction([
 ], {
     numArgs: 0,
 }, function(context) {
-    return {
-        type: "op",
-        limits: true,
-        symbol: false,
-        body: context.funcName,
-    };
+    return new ParseNode.Operation(
+        context.parser.mode,
+        null,
+        context.funcName,
+        true,
+        false
+    );
 });
 
 // No limits, symbols
@@ -292,12 +265,13 @@ defineFunction([
 ], {
     numArgs: 0,
 }, function(context) {
-    return {
-        type: "op",
-        limits: false,
-        symbol: true,
-        body: context.funcName,
-    };
+    return new ParseNode.Operation(
+        context.parser.mode,
+        null,
+        context.funcName,
+        false,
+        true
+    );
 });
 
 // Limits, symbols
@@ -308,25 +282,26 @@ defineFunction([
 ], {
     numArgs: 0,
 }, function(context) {
-    return {
-        type: "op",
-        limits: true,
-        symbol: true,
-        body: context.funcName,
-    };
+    return new ParseNode.Operation(
+        context.parser.mode,
+        null,
+        context.funcName,
+        true,
+        true
+    );
 });
 
 // \mathop class command
 defineFunction(["\\mathop"], {
     numArgs: 1,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "op",
-        limits: false,
-        symbol: false,
-        value: ordargument(body),
-    };
+    return new ParseNode.Operation(
+        context.parser.mode,
+        ordargument(args[0]),
+        context.funcName,
+        false,
+        false
+    );
 });
 
 import "./functions/operators";
@@ -340,53 +315,12 @@ defineFunction([
     numArgs: 2,
     greediness: 2,
 }, function(context, args) {
-    const numer = args[0];
-    const denom = args[1];
-    let hasBarLine;
-    let leftDelim = null;
-    let rightDelim = null;
-    let size = "auto";
-
-    switch (context.funcName) {
-        case "\\dfrac":
-        case "\\frac":
-        case "\\tfrac":
-            hasBarLine = true;
-            break;
-        case "\\\\atopfrac":
-            hasBarLine = false;
-            break;
-        case "\\dbinom":
-        case "\\binom":
-        case "\\tbinom":
-            hasBarLine = false;
-            leftDelim = "(";
-            rightDelim = ")";
-            break;
-        default:
-            throw new Error("Unrecognized genfrac command");
-    }
-
-    switch (context.funcName) {
-        case "\\dfrac":
-        case "\\dbinom":
-            size = "display";
-            break;
-        case "\\tfrac":
-        case "\\tbinom":
-            size = "text";
-            break;
-    }
-
-    return {
-        type: "genfrac",
-        numer: numer,
-        denom: denom,
-        hasBarLine: hasBarLine,
-        leftDelim: leftDelim,
-        rightDelim: rightDelim,
-        size: size,
-    };
+    return new ParseNode.Fraction(
+        context.parser.mode,
+        context.funcName,
+        args[0],
+        args[1]
+    );
 });
 
 // Horizontal overlap functions
@@ -394,12 +328,11 @@ defineFunction(["\\mathllap", "\\mathrlap", "\\mathclap"], {
     numArgs: 1,
     allowedInText: true,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "lap",
-        alignment: context.funcName.slice(5),
-        body: body,
-    };
+    return new ParseNode.Lap(
+        context.parser.mode,
+        args[0],
+        context.funcName
+    );
 });
 
 // smash, with optional [tb], as in AMS
@@ -408,38 +341,11 @@ defineFunction(["\\smash"], {
     numOptionalArgs: 1,
     allowedInText: true,
 }, function(context, args) {
-    let smashHeight = false;
-    let smashDepth = false;
-    const tbArg = args[0];
-    if (tbArg) {
-        // Optional [tb] argument is engaged.
-        // ref: amsmath: \renewcommand{\smash}[1][tb]{%
-        //               def\mb@t{\ht}\def\mb@b{\dp}\def\mb@tb{\ht\z@\z@\dp}%
-        let letter = "";
-        for (let i = 0; i < tbArg.value.length; ++i) {
-            letter = tbArg.value[i].value;
-            if (letter === "t") {
-                smashHeight = true;
-            } else if (letter === "b") {
-                smashDepth = true;
-            } else {
-                smashHeight = false;
-                smashDepth = false;
-                break;
-            }
-        }
-    } else {
-        smashHeight = true;
-        smashDepth = true;
-    }
-
-    const body = args[1];
-    return {
-        type: "smash",
-        body: body,
-        smashHeight: smashHeight,
-        smashDepth: smashDepth,
-    };
+    return new ParseNode.Smash(
+        context.parser.mode,
+        args[1].value,
+        args[0]
+    );
 });
 
 import "./functions/delimsizing";
@@ -476,16 +382,11 @@ defineFunction([
     numArgs: 1,
     greediness: 2,
 }, function(context, args) {
-    const body = args[0];
-    let func = context.funcName;
-    if (func in fontAliases) {
-        func = fontAliases[func];
-    }
-    return {
-        type: "font",
-        font: func.slice(1),
-        body: body,
-    };
+    return new ParseNode.Font(
+        context.parser.mode,
+        args[0],
+        context.funcName
+    );
 });
 
 // Accents
@@ -498,24 +399,10 @@ defineFunction([
 ], {
     numArgs: 1,
 }, function(context, args) {
-    const base = args[0];
-
-    const isStretchy = !utils.contains([
-        "\\acute", "\\grave", "\\ddot", "\\tilde", "\\bar", "\\breve",
-        "\\check", "\\hat", "\\vec", "\\dot",
-    ], context.funcName);
-
-    const isShifty = !isStretchy || utils.contains([
-        "\\widehat", "\\widetilde",
-    ], context.funcName);
-
-    return {
-        type: "accent",
-        label: context.funcName,
-        isStretchy: isStretchy,
-        isShifty: isShifty,
-        base: base,
-    };
+    return new ParseNode.Accent(
+        context.parser.mode,
+        args[0],
+        context.funcName);
 });
 
 // Text-mode accents
@@ -527,15 +414,10 @@ defineFunction([
     allowedInText: true,
     allowedInMath: false,
 }, function(context, args) {
-    const base = args[0];
-
-    return {
-        type: "accent",
-        label: context.funcName,
-        isStretchy: false,
-        isShifty: true,
-        base: base,
-    };
+    return new ParseNode.Accent(
+        context.parser.mode,
+        args[0],
+        context.funcName);
 });
 
 // Horizontal stretchy braces
@@ -544,13 +426,11 @@ defineFunction([
 ], {
     numArgs: 1,
 }, function(context, args) {
-    const base = args[0];
-    return {
-        type: "horizBrace",
-        label: context.funcName,
-        isOver: /^\\over/.test(context.funcName),
-        base: base,
-    };
+    return new ParseNode.HorizontalBrace(
+        context.parser.mode,
+        args[0],
+        context.funcName
+    );
 });
 
 // Stretchy accents under the body
@@ -560,12 +440,11 @@ defineFunction([
 ], {
     numArgs: 1,
 }, function(context, args) {
-    const base = args[0];
-    return {
-        type: "accentUnder",
-        label: context.funcName,
-        base: base,
-    };
+    return new ParseNode.AccentUnder(
+        context.parser.mode,
+        args[0],
+        context.funcName
+    );
 });
 
 // Stretchy arrows with an optional argument
@@ -581,26 +460,23 @@ defineFunction([
     numArgs: 1,
     numOptionalArgs: 1,
 }, function(context, args) {
-    const below = args[0];
-    const body = args[1];
-    return {
-        type: "xArrow",   // x for extensible
-        label: context.funcName,
-        body: body,
-        below: below,
-    };
+    return new ParseNode.ExtensibleArrow(
+        context.parser.mode,
+        args[1],
+        context.funcName,
+        args[0]
+    );
 });
 
 // enclose
 defineFunction(["\\cancel", "\\bcancel", "\\xcancel", "\\sout", "\\fbox"], {
     numArgs: 1,
 }, function(context, args) {
-    const body = args[0];
-    return {
-        type: "enclose",
-        label: context.funcName,
-        body: body,
-    };
+    return new ParseNode.Enclosing(
+        context.parser.mode,
+        args[0],
+        context.funcName
+    );
 });
 
 // Infix generalized fractions
@@ -608,25 +484,11 @@ defineFunction(["\\over", "\\choose", "\\atop"], {
     numArgs: 0,
     infix: true,
 }, function(context) {
-    let replaceWith;
-    switch (context.funcName) {
-        case "\\over":
-            replaceWith = "\\frac";
-            break;
-        case "\\choose":
-            replaceWith = "\\binom";
-            break;
-        case "\\atop":
-            replaceWith = "\\\\atopfrac";
-            break;
-        default:
-            throw new Error("Unrecognized infix genfrac command");
-    }
-    return {
-        type: "infix",
-        replaceWith: replaceWith,
-        token: context.token,
-    };
+    return new ParseNode.InfixFraction(
+        context.parser.mode,
+        context.funcName,
+        context.token
+    );
 });
 
 // Row breaks for aligned data
@@ -635,11 +497,11 @@ defineFunction(["\\\\", "\\cr"], {
     numOptionalArgs: 1,
     argTypes: ["size"],
 }, function(context, args) {
-    const size = args[0];
-    return {
-        type: "cr",
-        size: size,
-    };
+    return new ParseNode.AlignedRowBreak(
+        context.parser.mode,
+        context.funcName,
+        args[0]
+    );
 });
 
 // Environment delimiters
@@ -647,19 +509,15 @@ defineFunction(["\\begin", "\\end"], {
     numArgs: 1,
     argTypes: ["text"],
 }, function(context, args) {
-    const nameGroup = args[0];
-    if (nameGroup.type !== "ordgroup") {
-        throw new ParseError("Invalid environment name", nameGroup);
+    if (args[0].type !== "ordgroup") {
+        throw new ParseError("Invalid environment name", args[0]);
     }
-    let name = "";
-    for (let i = 0; i < nameGroup.value.length; ++i) {
-        name += nameGroup.value[i].value;
-    }
-    return {
-        type: "environment",
-        name: name,
-        nameGroup: nameGroup,
-    };
+
+    return new ParseNode.EnvironmentDelimiter(
+        context.parser.mode,
+        context.funcName,
+        args[0].value
+    );
 });
 
 // Box manipulation
@@ -668,12 +526,9 @@ defineFunction(["\\raisebox"], {
     argTypes: ["size", "text"],
     allowedInText: true,
 }, function(context, args) {
-    const amount = args[0];
-    const body = args[1];
-    return {
-        type: "raisebox",
-        dy: amount,
-        body: body,
-        value: ordargument(body),
-    };
+    return new ParseNode.RaiseBox(
+        context.parser.mode,
+        ordargument(args[1]),
+        args[0]
+    );
 });

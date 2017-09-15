@@ -16,7 +16,13 @@ export type Mode = "math" | "text";
 //                 first argument is special and the second
 //                 argument is parsed normally)
 //   - "text": Node group parsed as in text mode.
-export type ArgType = "color" | "size" | "original" | "text";
+export type ArgType = Color | Size | "original" | "text";
 
 // LaTeX display style.
 export type StyleStr = "text" | "display";
+
+// A size-like thing, such as "1em" or "5ex"
+export type Size = string;
+
+// An html color, like "#abc" or "blue"
+export type Color = string;
