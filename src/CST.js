@@ -31,13 +31,17 @@ export class AbstractNode {
     toParseNode(): ParseNode {
         return new ParseNode(this.type, this.toParseValue(), this.mode);
     }
+
+    wrapOrdgroup(node: ?AbstractNode): ParseNode {
+        return new Ordgroup(this.mode, [node]).toParseNode();
+    }
 }
 
 export class Sqrt extends AbstractNode {
-    body: ?AbstractNode[];
-    index: number;
+    body: ?AbstractNode;
+    index: ?AbstractNode;
 
-    constructor(mode: Mode, body: ?AbstractNode[], index: number) {
+    constructor(mode: Mode, body: ?AbstractNode, index: ?AbstractNode) {
         super("sqrt", mode);
         this.body = body;
         this.index = index;
@@ -46,22 +50,16 @@ export class Sqrt extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: toParseNodeArray(this.body),
-            index: this.index,
+            body: this.wrapOrdgroup(this.body),
+            index: this.wrapOrdgroup(this.index),
         };
     }
 }
 
-const textFunctionFonts = {
-    "\\text": undefined, "\\textrm": "mathrm", "\\textsf": "mathsf",
-    "\\texttt": "mathtt", "\\textnormal": "mathrm", "\\textbf": "mathbf",
-    "\\textit": "textit",
-};
-
 export class Text extends AbstractNode {
     body: ?AbstractNode[];
     command: string;
-    font: string; //TODO-AST: render logic, move to builders
+    font: string;
 
     constructor(mode: Mode, body: ?AbstractNode[], command: string) {
         super("text", mode);
@@ -79,6 +77,21 @@ export class Text extends AbstractNode {
         };
     }
 }
+Text.prototype.commands = {
+    text: "\\text",
+    textrm: "\\textrm",
+    textsf: "\\textsf",
+    texttt: "\\texttt",
+    textnormal: "\\textnormal",
+    textbf: "\\textbf",
+    textit: "\\textit",
+    // old font commands
+    rm: "\\rm",
+    sf: "\\sf",
+    tt: "\\tt",
+    bf: "\\bf",
+    it: "\\it",
+};
 
 export class Color extends AbstractNode {
     body: ?AbstractNode[];
@@ -184,7 +197,7 @@ export class KatexSymbol extends AbstractNode {
 export class MathClass extends AbstractNode {
     body: ?AbstractNode[];
     command: string;
-    mclass: string; //TODO-AST: render logic, move to builders
+    mclass: string;
 
     constructor(mode: Mode, body: ?AbstractNode[], command: string) {
         super("mclass", mode);
@@ -225,9 +238,9 @@ export class Mod extends AbstractNode {
 export class Operation extends AbstractNode {
     body: ?AbstractNode[];
     command: string;
-    limits: boolean; //TODO-AST: render logic, move to builders
-    symbol: boolean; //TODO-AST: render logic, move to builders
-    alwaysHandleSupSub: boolean; //TODO-AST: render logic, move to builders
+    limits: boolean;
+    symbol: boolean;
+    alwaysHandleSupSub: boolean;
 
     constructor(mode: Mode, body: ?AbstractNode[], command: string, limits: boolean,
                 symbol: boolean) {
@@ -252,10 +265,10 @@ export class Fraction extends AbstractNode {
     command: string;
     numer: ?AbstractNode;
     denom: ?AbstractNode;
-    hasBarLine: boolean; //TODO-AST: render logic, move to builders
-    leftDelim: string; //TODO-AST: render logic, move to builders
-    rightDelim: string; //TODO-AST: render logic, move to builders
-    size: string; //TODO-AST: render logic, move to builders
+    hasBarLine: boolean;
+    leftDelim: string;
+    rightDelim: string;
+    size: string;
 
     constructor(mode: Mode, command: string, numer: ?AbstractNode,
                 denom: ?AbstractNode) {
@@ -263,6 +276,8 @@ export class Fraction extends AbstractNode {
         this.command = command;
         this.numer = numer;
         this.denom = denom;
+        this.leftDelim = null;
+        this.rightDelim = null;
 
         switch (command) {
             case "\\dfrac":
@@ -301,8 +316,8 @@ export class Fraction extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            numer: this.numer.toParseNode(),
-            denom: this.denom.toParseNode(),
+            numer: this.wrapOrdgroup(this.numer),
+            denom: this.wrapOrdgroup(this.denom),
             hasBarLine: this.hasBarLine,
             leftDelim: this.leftDelim,
             rightDelim: this.rightDelim,
@@ -314,7 +329,7 @@ export class Fraction extends AbstractNode {
 export class Lap extends AbstractNode {
     body: ?AbstractNode[];
     command: string;
-    alignment: string; //TODO-AST: render logic, move to builders
+    alignment: string;
 
     constructor(mode: Mode, body: ?AbstractNode[], command: string) {
         super("lap", mode);
@@ -337,8 +352,8 @@ export class Smash extends AbstractNode {
     body: ?AbstractNode[];
     command: string;
     tb: string;
-    smashHeight: boolean; //TODO-AST: render logic, move to builders
-    smashDepth: boolean; //TODO-AST: render logic, move to builders
+    smashHeight: boolean;
+    smashDepth: boolean;
 
     constructor(mode: Mode, body: ?AbstractNode[], tb: ?{ value: string }[]) {
         super("smash", mode);
@@ -381,36 +396,25 @@ export class Smash extends AbstractNode {
 }
 
 const fontAliases = {
-    "\\Bbb": "\\mathbb",
-    "\\bold": "\\mathbf",
-    "\\frak": "\\mathfrak",
-};
-
-// Old font functions
-export const oldFontFuncs = {
-    "\\rm": "\\mathrm",
-    "\\sf": "\\mathsf",
-    "\\tt": "\\mathtt",
-    "\\bf": "\\mathbf",
-    "\\it": "\\mathit",
-    //"\\sl": "textsl",
-    //"\\sc": "textsc",
+    "\\Bbb": "mathbb",
+    "\\bold": "mathbf",
+    "\\frak": "mathfrak",
 };
 
 export class Font extends AbstractNode {
     body: ?AbstractNode[];
     command: string;
-    font: string; //TODO-AST: render logic, move to builders
+    font: string;
 
     constructor(mode: Mode, body: ?AbstractNode[], command: string) {
         super("font", mode);
         this.body = body;
         this.command = command;
 
-        const font = fontAliases[command] ||
-                     oldFontFuncs[command] ||
-                     command;
-        this.font = font.slice(1);
+        this.font = fontAliases[command] ||
+                    textFunctionFonts[command] ||
+                    oldFontFuncs[command] ||
+                    command.slice(1);
     }
 
     toParseValue() {
@@ -434,8 +438,8 @@ const shiftyAccents = [
 export class Accent extends AbstractNode {
     body: ?AbstractNode[];
     label: string;
-    isStretchy: boolean; //TODO-AST: render logic, move to builders
-    isShifty: boolean; //TODO-AST: render logic, move to builders
+    isStretchy: boolean;
+    isShifty: boolean;
 
     constructor(mode: Mode, body: ?AbstractNode[], label: string) {
         super("accent", mode);
@@ -462,7 +466,7 @@ export class Accent extends AbstractNode {
 export class HorizontalBrace extends AbstractNode {
     body: ?AbstractNode[];
     label: string;
-    isOver: boolean; //TODO-AST: render logic, move to builders
+    isOver: boolean;
 
     constructor(mode: Mode, body: ?AbstractNode[], label: string) {
         super("horizBrace", mode);
@@ -544,8 +548,8 @@ export class Enclosing extends AbstractNode {
 
 export class InfixFraction extends AbstractNode {
     command: string;
-    token: Token; //TODO-AST: parser logic, what to do with it?
-    replaceWith: string; //TODO-AST: render logic, move to builders
+    token: Token;
+    replaceWith: string;
 
     constructor(mode: Mode, command: string, token: Token) {
         super("infix", mode);
@@ -597,7 +601,7 @@ export class AlignedRowBreak extends AbstractNode {
 export class EnvironmentDelimiter extends AbstractNode {
     command: string;
     nameGroup: string;
-    name: string; //TODO-AST: render logic, move to builders
+    name: string;
 
     constructor(mode: Mode, command: string, nameGroup: { value: string }[]) {
         super("environment", mode);
@@ -718,7 +722,6 @@ export class Styling extends AbstractNode {
     }
 }
 
-//TODO-AST: separate render logic from semantics
 export class ArrayNode extends AbstractNode {
     hskipBeforeAndAfter: ?boolean;
     arraystretch: ?number;
@@ -752,19 +755,6 @@ export class ArrayNode extends AbstractNode {
     }
 }
 
-export class Textord extends AbstractNode {
-    ligature: string;
-
-    constructor(mode: Mode, ligature: string) {
-        super("textord", mode);
-        this.ligature = ligature;
-    }
-
-    toParseValue() {
-        return this.ligature;
-    }
-}
-
 export class Sizing extends AbstractNode {
     body: ?AbstractNode[];
     size: number;
@@ -784,3 +774,45 @@ export class Sizing extends AbstractNode {
     }
 }
 
+export class AbstractSymbol extends AbstractNode {
+    ligature: string;
+
+    constructor(type: string, mode: Mode, ligature: string) {
+        super(type, mode);
+        this.ligature = ligature;
+    }
+
+    toParseValue() {
+        return this.ligature;
+    }
+}
+
+export class Textord extends AbstractSymbol {
+    constructor(mode: Mode, ligature: string) {
+        super("textord", mode, ligature);
+    }
+}
+
+export class Mathord extends AbstractSymbol {
+    constructor(mode: Mode, ligature: string) {
+        super("mathord", mode, ligature);
+    }
+}
+
+const textFunctionFonts = {};
+textFunctionFonts[Text.prototype.commands.textrm] = "mathrm";
+textFunctionFonts[Text.prototype.commands.textsf] = "mathsf";
+textFunctionFonts[Text.prototype.commands.texttt] = "mathtt";
+textFunctionFonts[Text.prototype.commands.textnormal] = "mathrm";
+textFunctionFonts[Text.prototype.commands.textbf] = "mathbf";
+textFunctionFonts[Text.prototype.commands.textit] = "textit";
+
+// Old font functions
+const oldFontFuncs = {};
+oldFontFuncs[Text.prototype.commands.rm] = "mathrm";
+oldFontFuncs[Text.prototype.commands.sf] = "mathsf";
+oldFontFuncs[Text.prototype.commands.tt] = "mathtt";
+oldFontFuncs[Text.prototype.commands.bf] = "mathbf";
+oldFontFuncs[Text.prototype.commands.it] = "mathit";
+//oldFontFuncs[Text.prototype.sl] = "textsl";
+//oldFontFuncs[Text.prototype.sc] = "textsc";
