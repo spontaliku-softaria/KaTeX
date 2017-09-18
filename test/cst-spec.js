@@ -6,8 +6,12 @@
 //@flow
 
 import {
-    AbstractNode, Color, Fraction, KatexSymbol, Mathord, Sqrt, Text,
-    Textord,
+    AbstractNode, Color, Fraction, KatexSymbol, Kern, MathClass, Mathord, Mod,
+    Operation,
+    Overline, Rule,
+    Sqrt,
+    Text,
+    Textord, Underline,
 } from "../src/CST";
 import parseTree from "../src/parseTree";
 import Settings from "../src/Settings";
@@ -107,11 +111,6 @@ describe("An AST tree", function() {
         expect(textordMath).toBuildParseTree(textordMathLatex);
     });
 
-    it("should build fraction", function() {
-        expect(new Fraction("math", "\\frac", mathord, mathord))
-            .toBuildParseTree(`\\frac{${mathordLatex}}{${mathordLatex}}`);
-    });
-
     it("should build sqrt", function() {
         expect(new Sqrt("math", mathord, mathord))
             .toBuildParseTree(`\\sqrt[${mathordLatex}]{${mathordLatex}}`);
@@ -126,7 +125,53 @@ describe("An AST tree", function() {
     });
 
     it("should build color", function() {
-        const tree = new Color("math", [mathord], "blue");
-        expect(tree).toBuildParseTree(`\\color{blue}${mathordLatex}`);
+        expect(new Color("math", [mathord], "blue"))
+            .toBuildParseTree(`\\color{blue}${mathordLatex}`);
+    });
+
+    it("should build overline", function() {
+        expect(new Overline("math", mathord))
+            .toBuildParseTree(`\\overline{${mathordLatex}}`);
+    });
+
+    it("should build underline", function() {
+        expect(new Underline("math", mathord))
+            .toBuildParseTree(`\\underline{${mathordLatex}}`);
+    });
+
+    it("should build rule", function() {
+        expect(new Rule("math", "1em", "2em", "3em"))
+            .toBuildParseTree(`\\rule[3em]{1em}{2em}`);
+    });
+
+    it("should build kern", function() {
+        expect(new Kern("math", "1em"))
+            .toBuildParseTree(`\\kern{1em}`);
+    });
+
+    it("should build math class", function() {
+        expect(new MathClass("math", [mathord], MathClass.prototype.commands.mathord))
+            .toBuildParseTree(`\\mathord ${mathordLatex}`);
+    });
+
+    it("should build mod", function() {
+        expect(new Mod("math", null, Mod.prototype.commands.bmod))
+            .toBuildParseTree(`\\bmod`);
+
+        expect(new Mod("math", [mathord], Mod.prototype.commands.pod))
+            .toBuildParseTree(`\\pod ${mathordLatex}`);
+    });
+
+    it("should build operation", function() {
+        expect(new Operation("math", null, Operation.prototype.commands.arcsin))
+            .toBuildParseTree(`\\arcsin`);
+
+        expect(new Operation("math", [mathord], Operation.prototype.commands.mathop))
+            .toBuildParseTree(`\\mathop{${mathordLatex}}`);
+    });
+
+    it("should build fraction", function() {
+        expect(new Fraction("math", Fraction.prototype.commands.frac, mathord, mathord))
+            .toBuildParseTree(`\\frac{${mathordLatex}}{${mathordLatex}}`);
     });
 });
