@@ -6,7 +6,13 @@
 //@flow
 
 import {
-    AbstractNode, Color, Fraction, KatexSymbol, Kern, Lap, MathClass, Mathord,
+    AbstractNode, Accent, AccentUnder, Color, Enclose, ExtensibleArrow, Font,
+    Fraction,
+    HorizontalBrace,
+    KatexSymbol,
+    Kern, Lap,
+    MathClass,
+    Mathord,
     Mod,
     Operation,
     Overline, Rule, Smash,
@@ -186,5 +192,35 @@ describe("An AST tree", function() {
     it("should build smash", function() {
         expect(new Smash("math", mathord, [{value: "t"}, {value: "b"}]))
             .toBuildParseTree(`\\smash[tb]{${mathordLatex}}`);
+    });
+
+    it("should build font", function() {
+        expect(new Font("math", mathord, Font.prototype.commands.Bbb))
+            .toBuildParseTree(`\\Bbb ${mathordLatex}`);
+    });
+
+    it("should build accent", function() {
+        expect(new Accent("math", mathord, Accent.prototype.commands.acute))
+            .toBuildParseTree(`\\acute ${mathordLatex}`);
+    });
+
+    it("should build horizontal brace", function() {
+        expect(new HorizontalBrace("math", mathord, HorizontalBrace.prototype.commands.overbrace))
+            .toBuildParseTree(`\\overbrace ${mathordLatex}`);
+    });
+
+    it("should build accent below", function() {
+        expect(new AccentUnder("math", mathord, AccentUnder.prototype.commands.underleftarrow))
+            .toBuildParseTree(`\\underleftarrow ${mathordLatex}`);
+    });
+
+    it("should build extensible arrow", function() {
+        expect(new ExtensibleArrow("math", mathord, ExtensibleArrow.prototype.commands.xhookleftarrow, mathord))
+            .toBuildParseTree(`\\xhookleftarrow[${mathordLatex}] ${mathordLatex}`);
+    });
+
+    it("should build accent below", function() {
+        expect(new Enclose("math", mathord, Enclose.prototype.commands.cancel))
+            .toBuildParseTree(`\\cancel ${mathordLatex}`);
     });
 });

@@ -523,18 +523,12 @@ export class Smash extends AbstractNode {
     }
 }
 
-const fontAliases = {
-    "\\Bbb": "mathbb",
-    "\\bold": "mathbf",
-    "\\frak": "mathfrak",
-};
-
 export class Font extends AbstractNode {
-    body: ?AbstractNode[];
+    body: ?AbstractNode;
     command: string;
     font: string;
 
-    constructor(mode: Mode, body: ?AbstractNode[], command: string) {
+    constructor(mode: Mode, body: ?AbstractNode, command: string) {
         super("font", mode);
         this.body = body;
         this.command = command;
@@ -548,28 +542,39 @@ export class Font extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: toParseNodeArray(this.body),
+            body: this.body ? this.body.toParseNode() : null,
             font: this.font,
         };
     }
 }
 
-const stretchyAccents = [
-    "\\acute", "\\grave", "\\ddot", "\\tilde", "\\bar", "\\breve",
-    "\\check", "\\hat", "\\vec", "\\dot",
-];
+Font.prototype.commands = {
+    // styles
+    mathrm: "\\mathrm",
+    mathit: "\\mathit",
+    mathbf: "\\mathbf",
 
-const shiftyAccents = [
-    "\\widehat", "\\widetilde",
-];
+    // families
+    mathbb: "\\mathbb",
+    mathcal: "\\mathcal",
+    mathfrak: "\\mathfrak",
+    mathscr: "\\mathscr",
+    mathsf: "\\mathsf",
+    mathtt: "\\mathtt",
+
+    // aliases
+    Bbb: "\\Bbb",
+    bold: "\\bold",
+    frak: "\\frak",
+};
 
 export class Accent extends AbstractNode {
-    body: ?AbstractNode[];
+    body: ?AbstractNode;
     label: string;
     isStretchy: boolean;
     isShifty: boolean;
 
-    constructor(mode: Mode, body: ?AbstractNode[], label: string) {
+    constructor(mode: Mode, body: ?AbstractNode, label: string) {
         super("accent", mode);
         this.body = body;
         this.label = label;
@@ -583,7 +588,7 @@ export class Accent extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            base: toParseNodeArray(this.body),
+            base: this.body ? this.body.toParseNode() : null,
             label: this.label,
             isStretchy: this.isStretchy,
             isShifty: this.isShifty,
@@ -591,12 +596,48 @@ export class Accent extends AbstractNode {
     }
 }
 
+Accent.prototype.commands = {
+    acute: "\\acute",
+    grave: "\\grave",
+    ddot: "\\ddot",
+    tilde: "\\tilde",
+    bar: "\\bar",
+    breve: "\\breve",
+    check: "\\check",
+    hat: "\\hat",
+    vec: "\\vec",
+    dot: "\\dot",
+    widehat: "\\widehat",
+    widetilde: "\\widetilde",
+    overrightarrow: "\\overrightarrow",
+    overleftarrow: "\\overleftarrow",
+    Overrightarrow: "\\Overrightarrow",
+    overleftrightarrow: "\\overleftrightarrow",
+    overgroup: "\\overgroup",
+    overlinesegment: "\\overlinesegment",
+    overleftharpoon: "\\overleftharpoon",
+    overrightharpoon: "\\overrightharpoon",
+
+    // Text-mode accents
+    "'": "\\'",
+    "`": "\\`",
+    "^": "\\^",
+    "~": "\\~",
+    "=": "\\=",
+    "u": "\\u",
+    ".": "\\.",
+    "\"": "\\\"",
+    "r": "\\r",
+    "H": "\\H",
+    "v": "\\v",
+};
+
 export class HorizontalBrace extends AbstractNode {
-    body: ?AbstractNode[];
+    body: ?AbstractNode;
     label: string;
     isOver: boolean;
 
-    constructor(mode: Mode, body: ?AbstractNode[], label: string) {
+    constructor(mode: Mode, body: ?AbstractNode, label: string) {
         super("horizBrace", mode);
         this.body = body;
         this.label = label;
@@ -607,18 +648,23 @@ export class HorizontalBrace extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            base: toParseNodeArray(this.body),
+            base: this.body ? this.body.toParseNode() : null,
             label: this.label,
             isOver: this.isOver,
         };
     }
 }
 
+HorizontalBrace.prototype.commands = {
+    overbrace: "\\overbrace",
+    underbrace: "\\underbrace",
+};
+
 export class AccentUnder extends AbstractNode {
-    body: ?AbstractNode[];
+    body: ?AbstractNode;
     label: string;
 
-    constructor(mode: Mode, body: ?AbstractNode[], label: string) {
+    constructor(mode: Mode, body: ?AbstractNode, label: string) {
         super("accentUnder", mode);
         this.body = body;
         this.label = label;
@@ -627,19 +673,28 @@ export class AccentUnder extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            base: toParseNodeArray(this.body),
+            base: this.body ? this.body.toParseNode() : null,
             label: this.label,
         };
     }
 }
 
-export class ExtensibleArrow extends AbstractNode {
-    body: ?AbstractNode[];
-    label: string;
-    below: ?AbstractNode[];
+AccentUnder.prototype.commands = {
+    underleftarrow: "\\underleftarrow",
+    underrightarrow: "\\underrightarrow",
+    underleftrightarrow: "\\underleftrightarrow",
+    undergroup: "\\undergroup",
+    underlinesegment: "\\underlinesegment",
+    undertilde: "\\undertilde",
+};
 
-    constructor(mode: Mode, body: ?AbstractNode[], label: string,
-                below: ?AbstractNode[]) {
+export class ExtensibleArrow extends AbstractNode {
+    body: ?AbstractNode;
+    label: string;
+    below: ?AbstractNode;
+
+    constructor(mode: Mode, body: ?AbstractNode, label: string,
+                below: ?AbstractNode) {
         super("xArrow", mode);
         this.body = body;
         this.label = label;
@@ -649,17 +704,40 @@ export class ExtensibleArrow extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: toParseNodeArray(this.body),
-            below: this.below,
+            body: this.body ? this.body.toParseNode() : null,
+            below: this.wrapOrdgroup(this.below),
+            label: this.label,
         };
     }
 }
 
-export class Enclosing extends AbstractNode {
-    body: ?AbstractNode[];
+ExtensibleArrow.prototype.commands = {
+    xleftarrow: "\\xleftarrow",
+    xrightarrow: "\\xrightarrow",
+    xLeftarrow: "\\xLeftarrow",
+    xRightarrow: "\\xRightarrow",
+    xleftrightarrow: "\\xleftrightarrow",
+    xLeftrightarrow: "\\xLeftrightarrow",
+    xhookleftarrow: "\\xhookleftarrow",
+    xhookrightarrow: "\\xhookrightarrow",
+    xmapsto: "\\xmapsto",
+    xrightharpoondown: "\\xrightharpoondown",
+    xrightharpoonup: "\\xrightharpoonup",
+    xleftharpoondown: "\\xleftharpoondown",
+    xleftharpoonup: "\\xleftharpoonup",
+    xrightleftharpoons: "\\xrightleftharpoons",
+    xleftrightharpoons: "\\xleftrightharpoons",
+    xLongequal: "\\xLongequal",
+    xtwoheadrightarrow: "\\xtwoheadrightarrow",
+    xtwoheadleftarrow: "\\xtwoheadleftarrow",
+    xtofrom: "\\xtofrom",
+};
+
+export class Enclose extends AbstractNode {
+    body: ?AbstractNode;
     label: string;
 
-    constructor(mode: Mode, body: ?AbstractNode[], label: string) {
+    constructor(mode: Mode, body: ?AbstractNode, label: string) {
         super("enclose", mode);
         this.body = body;
         this.label = label;
@@ -668,11 +746,19 @@ export class Enclosing extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: toParseNodeArray(this.body),
+            body: this.body ? this.body.toParseNode() : null,
             label: this.label,
         };
     }
 }
+
+Enclose.prototype.commands = {
+    cancel: "\\cancel",
+    bcancel: "\\bcancel",
+    xcancel: "\\xcancel",
+    sout: "\\sout",
+    fbox: "\\fbox",
+};
 
 export class InfixFraction extends AbstractNode {
     command: string;
@@ -945,6 +1031,11 @@ oldFontFuncs[Text.prototype.commands.it] = "mathit";
 //oldFontFuncs[Text.prototype.sl] = "textsl";
 //oldFontFuncs[Text.prototype.sc] = "textsc";
 
+const fontAliases = {};
+fontAliases[Font.prototype.commands.Bbb] = "mathbb";
+fontAliases[Font.prototype.commands.bold] = "mathbf";
+fontAliases[Font.prototype.commands.frak] = "mathfrak";
+
 const operationsNotLimitsNotSymbols = [
     Operation.prototype.commands.arcsin, Operation.prototype.commands.arccos,
     Operation.prototype.commands.arctan, Operation.prototype.commands.arctg,
@@ -988,4 +1079,16 @@ const operationsLimitsSymbols = [
     Operation.prototype.commands.bigoplus, Operation.prototype.commands.bigodot,
     Operation.prototype.commands.bigsqcup,
     Operation.prototype.commands.smallint,
+];
+
+const stretchyAccents = [
+    Accent.prototype.commands.acute, Accent.prototype.commands.grave,
+    Accent.prototype.commands.ddot, Accent.prototype.commands.tilde,
+    Accent.prototype.commands.bar, Accent.prototype.commands.breve,
+    Accent.prototype.commands.check, Accent.prototype.commands.hat,
+    Accent.prototype.commands.vec, Accent.prototype.commands.dot,
+];
+
+const shiftyAccents = [
+    Accent.prototype.commands.widehat, Accent.prototype.commands.widetilde,
 ];
