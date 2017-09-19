@@ -5,16 +5,6 @@ import * as utils from "./utils";
 import {Token} from "./Token";
 import ParseNode from "./ParseNode";
 
-function toParseNodeArray(nodes: ?AbstractNode[]): ParseNode[] {
-    if (!nodes) {
-        return null;
-    }
-
-    return nodes.map(function(node) {
-        return node.toParseNode();
-    });
-}
-
 export class AbstractNode {
     type: string;
     mode: Mode;
@@ -32,8 +22,9 @@ export class AbstractNode {
         return new ParseNode(this.type, this.toParseValue(), this.mode);
     }
 
-    wrapOrdgroup(node: ?AbstractNode): ParseNode {
-        return new Ordgroup(this.mode, [node]).toParseNode();
+    wrapOrdgroup(mode: Mode, node: ?AbstractNode | AbstractNode[]): ParseNode {
+        return new Ordgroup(mode, Array.isArray(node) ? node : [node])
+            .toParseNode();
     }
 
     parseSize(size: Size): { number: number, unit: string } {
@@ -47,6 +38,16 @@ export class AbstractNode {
             number: Number(match[1] + match[2]), // sign + magnitude
             unit: match[3],
         };
+    }
+
+    toParseNodeArray(nodes: ?AbstractNode[]): ParseNode[] {
+        if (!nodes) {
+            return null;
+        }
+
+        return nodes.map(function(node) {
+            return node.toParseNode();
+        });
     }
 }
 
@@ -63,8 +64,8 @@ export class Sqrt extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: this.wrapOrdgroup(this.body),
-            index: this.wrapOrdgroup(this.index),
+            body: this.wrapOrdgroup(this.mode, this.body),
+            index: this.wrapOrdgroup(this.mode, this.index),
         };
     }
 }
@@ -85,7 +86,7 @@ export class Text extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: toParseNodeArray(this.body),
+            body: this.toParseNodeArray(this.body),
             font: this.font,
         };
     }
@@ -120,7 +121,7 @@ export class Color extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            value: toParseNodeArray(this.body),
+            value: this.toParseNodeArray(this.body),
             color: this.color,
         };
     }
@@ -137,7 +138,7 @@ export class Overline extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: this.wrapOrdgroup(this.body),
+            body: this.wrapOrdgroup(this.mode, this.body),
         };
     }
 }
@@ -153,7 +154,7 @@ export class Underline extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: this.wrapOrdgroup(this.body),
+            body: this.wrapOrdgroup(this.mode, this.body),
         };
     }
 }
@@ -224,7 +225,7 @@ export class MathClass extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            value: toParseNodeArray(this.body),
+            value: this.toParseNodeArray(this.body),
             mclass: this.mclass,
         };
     }
@@ -253,7 +254,7 @@ export class Mod extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            value: toParseNodeArray(this.body),
+            value: this.toParseNodeArray(this.body),
             modType: this.modType.slice(1),
         };
     }
@@ -298,7 +299,7 @@ export class Operation extends AbstractNode {
         return {
             type: this.type,
             value: this.command === this.commands.mathop ?
-                toParseNodeArray(this.body) :
+                this.toParseNodeArray(this.body) :
                 undefined,
             body: this.command !== this.commands.mathop ?
                 this.command :
@@ -428,8 +429,8 @@ export class Fraction extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            numer: this.wrapOrdgroup(this.numer),
-            denom: this.wrapOrdgroup(this.denom),
+            numer: this.wrapOrdgroup(this.mode, this.numer),
+            denom: this.wrapOrdgroup(this.mode, this.denom),
             hasBarLine: this.hasBarLine,
             leftDelim: this.leftDelim,
             rightDelim: this.rightDelim,
@@ -516,7 +517,7 @@ export class Smash extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: this.wrapOrdgroup(this.body),
+            body: this.wrapOrdgroup(this.mode, this.body),
             smashHeight: this.smashHeight,
             smashDepth: this.smashDepth,
         };
@@ -619,17 +620,17 @@ Accent.prototype.commands = {
     overrightharpoon: "\\overrightharpoon",
 
     // Text-mode accents
-    "'": "\\'",
-    "`": "\\`",
-    "^": "\\^",
-    "~": "\\~",
-    "=": "\\=",
-    "u": "\\u",
-    ".": "\\.",
-    "\"": "\\\"",
-    "r": "\\r",
-    "H": "\\H",
-    "v": "\\v",
+    quote: "\\'",
+    graveSym: "\\`",
+    cap: "\\^",
+    tilda: "\\~",
+    eq: "\\=",
+    u: "\\u",
+    dotSym: "\\.",
+    backslash: "\\\"",
+    r: "\\r",
+    H: "\\H",
+    v: "\\v",
 };
 
 export class HorizontalBrace extends AbstractNode {
@@ -705,7 +706,7 @@ export class ExtensibleArrow extends AbstractNode {
         return {
             type: this.type,
             body: this.body ? this.body.toParseNode() : null,
-            below: this.wrapOrdgroup(this.below),
+            below: this.wrapOrdgroup(this.mode, this.below),
             label: this.label,
         };
     }
@@ -760,6 +761,8 @@ Enclose.prototype.commands = {
     fbox: "\\fbox",
 };
 
+//TODO: find out how to handle InfixFraction - it is being parsed into Fraction
+// in Parser.js:handleInfixNodes
 export class InfixFraction extends AbstractNode {
     command: string;
     token: Token;
@@ -771,14 +774,14 @@ export class InfixFraction extends AbstractNode {
         this.token = token;
 
         switch (command) {
-            case "\\over":
-                this.replaceWith = "\\frac";
+            case this.commands.over:
+                this.replaceWith = Fraction.prototype.commands.frac;
                 break;
-            case "\\choose":
-                this.replaceWith = "\\binom";
+            case this.commands.choose:
+                this.replaceWith = Fraction.prototype.commands.binom;
                 break;
-            case "\\atop":
-                this.replaceWith = "\\\\atopfrac";
+            case this.commands.atop:
+                this.replaceWith = Fraction.prototype.commands.atopfrac;
                 break;
             default:
                 throw new Error("Unrecognized infix genfrac command");
@@ -794,54 +797,17 @@ export class InfixFraction extends AbstractNode {
     }
 }
 
-export class AlignedRowBreak extends AbstractNode {
-    command: string;
-    size: ?Size;
-
-    constructor(mode: Mode, command: string, size: Size) {
-        super("cr", mode);
-        this.command = command;
-        this.size = size;
-    }
-
-    toParseValue() {
-        return {
-            type: this.type,
-            size: this.size,
-        };
-    }
-}
-
-export class EnvironmentDelimiter extends AbstractNode {
-    command: string;
-    nameGroup: string;
-    name: string;
-
-    constructor(mode: Mode, command: string, nameGroup: { value: string }[]) {
-        super("environment", mode);
-        this.command = command;
-        this.nameGroup = nameGroup;
-
-        this.name = "";
-        for (let i = 0; i < nameGroup.length; ++i) {
-            this.name += nameGroup[i].value;
-        }
-    }
-
-    toParseValue() {
-        return {
-            type: this.type,
-            name: this.name,
-            nameGroup: this.nameGroup,
-        };
-    }
-}
+InfixFraction.prototype.commands = {
+    over: "\\over",
+    choose: "\\choose",
+    atop: "\\atop",
+};
 
 export class RaiseBox extends AbstractNode {
-    body: ?AbstractNode[];
+    body: ?AbstractNode | AbstractNode[];
     amount: Size;
 
-    constructor(mode: Mode, body: ?AbstractNode[], amount: Size) {
+    constructor(mode: Mode, body: ?AbstractNode | AbstractNode[], amount: Size) {
         super("raisebox", mode);
         this.body = body;
         this.amount = amount;
@@ -850,19 +816,24 @@ export class RaiseBox extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            value: toParseNodeArray(this.body),
-            dy: this.amount,
+            value: this.toParseNodeArray(this.body),
+            body: this.wrapOrdgroup("text", this.body),
+            dy: {
+                mode: this.mode,
+                type: "size",
+                value: this.parseSize(this.amount),
+            },
         };
     }
 }
 
 export class Supsub extends AbstractNode {
     base: ?AbstractNode;
-    sup: ?AbstractNode[];
-    sub: ?AbstractNode[];
+    sup: ?AbstractNode;
+    sub: ?AbstractNode;
 
-    constructor(mode: Mode, base: ?AbstractNode, sup: ?AbstractNode[],
-                sub: ?AbstractNode[]) {
+    constructor(mode: Mode, base: ?AbstractNode, sup: ?AbstractNode,
+                sub: ?AbstractNode) {
         super("supsub", mode);
         this.base = base;
         this.sup = sup;
@@ -871,33 +842,28 @@ export class Supsub extends AbstractNode {
 
     toParseValue() {
         return {
-            type: this.type,
-            base: toParseNodeArray(this.body),
-            sup: toParseNodeArray(this.sup),
-            sub: toParseNodeArray(this.sub),
+            base: this.base ? this.base.toParseNode() : null,
+            sup: this.sup ? this.sup.toParseNode() : null,
+            sub: this.sub ? this.sub.toParseNode() : null,
         };
     }
 }
 
 export class LeftRight extends AbstractNode {
     body: ?AbstractNode[];
-    command: string;
     left: string;
     right: string;
 
-    constructor(mode: Mode, body: ?AbstractNode[], left: string, right: string,
-                command: ?string) {
+    constructor(mode: Mode, body: ?AbstractNode[], left: string, right: string) {
         super("leftright", mode);
         this.body = body;
         this.left = left;
         this.right = right;
-        this.command = command;
     }
 
     toParseValue() {
         return {
-            type: this.type,
-            body: toParseNodeArray(this.body),
+            body: this.toParseNodeArray(this.body),
             left: this.left,
             right: this.right,
         };
@@ -913,7 +879,7 @@ export class Ordgroup extends AbstractNode {
     }
 
     toParseValue() {
-        return toParseNodeArray(this.body);
+        return this.toParseNodeArray(this.body);
     }
 }
 
@@ -929,42 +895,221 @@ export class Styling extends AbstractNode {
 
     toParseValue() {
         return {
-            type: this.type,
-            value: toParseNodeArray(this.body),
+            value: this.toParseNodeArray(this.body),
             style: this.style,
         };
     }
 }
 
-export class ArrayNode extends AbstractNode {
-    hskipBeforeAndAfter: ?boolean;
-    arraystretch: ?number;
-    addJot: ?boolean;
-    cols: ?AlignSpec[];
-    rows: ?AbstractNode[][];
+export class AbstractEnvironment extends AbstractNode {
+    name: string;
+    body: AbstractNode[][];
+    style: string;
     rowGaps: number[];
 
-    constructor(mode: Mode, hskipBeforeAndAfter: boolean, arraystretch: number,
-                addJot: boolean, cols: AlignSpec[], rows: AbstractNode[][],
-                rowGaps: number[]) {
+    constructor(mode: Mode, name: string, body: AbstractNode[][],
+                style: "display" | "text", rowGaps: ?number[]) {
         super("array", mode);
-        this.hskipBeforeAndAfter = hskipBeforeAndAfter;
-        this.arraystretch = arraystretch;
-        this.addJot = addJot;
+        this.name = name;
+        this.body = body;
+        this.style = style;
+        //FIXME strange Katex behaviour (try to remove [null] and run tests)
+        this.rowGaps = rowGaps || [null];
+    }
+
+    toParseNode(): ParseNode {
+        const parseValue = this.toParseValue();
+        parseValue.rowGaps = this.rowGaps;
+
+        const mode = this.mode;
+        const style = this.style;
+        parseValue.body = this.body.map(function(row) {
+            return row.map(function(cell) {
+                return new Styling(mode, [new Ordgroup(mode, [cell])], style)
+                    .toParseNode();
+            });
+        });
+
+        const delimiters = envitronmentDelimiters[this.name];
+        if (delimiters) {
+            const leftRightParseNode = new LeftRight(this.mode, [],
+                delimiters[0], delimiters[1])
+                .toParseNode();
+
+            leftRightParseNode.value.body = [
+                new ParseNode(this.type, parseValue, this.mode),
+            ];
+
+            return leftRightParseNode;
+        } else {
+            return new ParseNode(this.type, parseValue, this.mode);
+        }
+    }
+
+    toColsParseNodes(cols: ?Array<EnvironmentAlign | EnvironmentSeparator>) {
+        if (!cols) {
+            return [];
+        }
+
+        return cols.map(function(col) {
+            return col.toValue();
+        });
+    }
+}
+
+export class ArrayEnvironment extends AbstractEnvironment {
+    cols: ?Array<EnvironmentAlign | EnvironmentSeparator>;
+
+    constructor(mode: Mode, name: string, body: AbstractNode[][],
+                cols: Array<EnvironmentAlign | EnvironmentSeparator>,
+                rowGaps: ?number[]) {
+        super(mode, name, body,
+            name === ArrayEnvironment.prototype.environments.darray ?
+                "display" :
+                "text",
+            rowGaps);
         this.cols = cols;
-        this.rows = rows;
-        this.rowGaps = rowGaps;
     }
 
     toParseValue() {
         return {
             type: this.type,
-            rows: toParseNodeArray(this.rows),
-            hskipBeforeAndAfter: this.hskipBeforeAndAfter,
-            arraystretch: this.arraystretch,
-            addJot: this.addJot,
-            cols: this.cols,
-            rowGaps: this.rowGaps,
+            hskipBeforeAndAfter: true,
+            cols: this.toColsParseNodes(this.cols),
+        };
+    }
+}
+
+ArrayEnvironment.prototype.environments = {
+    array: "array",
+    darray: "darray",
+};
+
+export class MatrixEnvironment extends AbstractEnvironment {
+    constructor(mode: Mode, name: string, body: AbstractNode[][],
+                rowGaps: ?number[]) {
+        super(mode, name, body, "text", rowGaps);
+    }
+
+    toParseValue() {
+        return {
+            type: this.type,
+            hskipBeforeAndAfter: false,
+        };
+    }
+}
+
+MatrixEnvironment.prototype.environments = {
+    matrix: "matrix",
+    pmatrix: "pmatrix",
+    bmatrix: "bmatrix",
+    Bmatrix: "Bmatrix",
+    vmatrix: "vmatrix",
+    Vmatrix: "Vmatrix",
+};
+
+export class CasesEnvironment extends AbstractEnvironment {
+    constructor(mode: Mode, name: string, body: AbstractNode[][],
+                rowGaps: ?number[]) {
+        super(mode, name, body,
+            name === CasesEnvironment.prototype.environments.dcases ?
+                "display" :
+                "text",
+            rowGaps);
+    }
+
+    toParseValue() {
+        return {
+            type: this.type,
+            arraystretch: 1.2,
+            cols: this.toColsParseNodes([
+                // TODO(kevinb) get the current style.
+                // For now we use the metrics for TEXT style which is what we were
+                // doing before.  Before attempting to get the current style we
+                // should look at TeX's behavior especially for \over and matrices.
+                new EnvironmentAlign("l", 0, 1.0 /* 1em quad */),
+                new EnvironmentAlign("l", 0, 0),
+            ]),
+        };
+    }
+}
+
+CasesEnvironment.prototype.environments = {
+    cases: "cases",
+    dcases: "dcases",
+};
+
+export class AlignedEnvironment extends AbstractEnvironment {
+    constructor(mode: Mode, name: string, body: AbstractNode[][],
+                rowGaps: ?number[]) {
+        super(mode, name, body, "display", rowGaps);
+    }
+
+    // TODO: do stuff from environments.js
+    toParseValue(): {} {
+        return {
+            type: this.type,
+            addJot: true,
+        };
+    }
+}
+
+AlignedEnvironment.prototype.environments = {
+    aligned: "aligned",
+};
+
+export class GatheredEnvironment extends AbstractEnvironment {
+    constructor(mode: Mode, name: string, body: AbstractNode[][],
+                rowGaps: ?number[]) {
+        super(mode, name, body, "display", rowGaps);
+    }
+
+    toParseValue(): {} {
+        return {
+            type: this.type,
+            cols: this.toColsParseNodes([
+                new EnvironmentAlign("c"),
+            ]),
+            addJot: true,
+        };
+    }
+}
+
+GatheredEnvironment.prototype.environments = {
+    gathered: "gathered",
+};
+
+export class EnvironmentAlign {
+    align: string;
+    pregap: ?number;
+    postgap: ?number;
+
+    constructor(align: "l" | "r" | "c", pregap: ?number, postgap: ?number) {
+        this.align = align;
+        this.pregap = pregap;
+        this.postgap = postgap;
+    }
+
+    //FIXME this is not AbstractNode.toParseValue! Add interface?
+    toValue() {
+        return {
+            type: "align",
+            align: this.align,
+            pregap: this.pregap,
+            postgap: this.postgap,
+        };
+    }
+}
+
+export class EnvironmentSeparator {
+    constructor() {
+    }
+
+    //FIXME this is not AbstractNode.toParseValue! Add interface?
+    toValue() {
+        return {
+            type: "separator",
+            separator: "|", //FIXME: is there any other separators?
         };
     }
 }
@@ -973,7 +1118,7 @@ export class Sizing extends AbstractNode {
     body: ?AbstractNode[];
     size: number;
 
-    constructor(mode: Mode, body: AbstractNode[], size: number) {
+    constructor(mode: Mode, body: AbstractNode[], size: number /* 1-11 */) {
         super("sizing", mode);
         this.body = body;
         this.size = size;
@@ -981,8 +1126,7 @@ export class Sizing extends AbstractNode {
 
     toParseValue() {
         return {
-            type: this.type,
-            value: toParseNodeArray(this.body),
+            value: this.toParseNodeArray(this.body),
             size: this.size,
         };
     }
@@ -1092,3 +1236,20 @@ const stretchyAccents = [
 const shiftyAccents = [
     Accent.prototype.commands.widehat, Accent.prototype.commands.widetilde,
 ];
+
+const envitronmentDelimiters = {};
+envitronmentDelimiters[MatrixEnvironment.prototype.environments.pmatrix] =
+    ["(", ")"];
+envitronmentDelimiters[MatrixEnvironment.prototype.environments.bmatrix] =
+    ["[", "]"];
+envitronmentDelimiters[MatrixEnvironment.prototype.environments.Bmatrix] =
+    ["\\{", "\\}"];
+envitronmentDelimiters[MatrixEnvironment.prototype.environments.vmatrix] =
+    ["|", "|"];
+envitronmentDelimiters[MatrixEnvironment.prototype.environments.Vmatrix] =
+    ["\\Vert", "\\Vert"];
+envitronmentDelimiters[MatrixEnvironment.prototype.environments.pmatrix] =
+    ["(", ")"];
+envitronmentDelimiters[CasesEnvironment.prototype.environments.cases] =
+    envitronmentDelimiters[CasesEnvironment.prototype.environments.dcases] =
+        ["\\{", "."];
