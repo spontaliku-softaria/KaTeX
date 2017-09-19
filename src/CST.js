@@ -437,6 +437,7 @@ export class Fraction extends AbstractNode {
         };
     }
 }
+
 Fraction.prototype.commands = {
     dfrac: "\\dfrac",
     frac: "\\frac",
@@ -448,11 +449,11 @@ Fraction.prototype.commands = {
 };
 
 export class Lap extends AbstractNode {
-    body: ?AbstractNode[];
+    body: ?AbstractNode;
     command: string;
     alignment: string;
 
-    constructor(mode: Mode, body: ?AbstractNode[], command: string) {
+    constructor(mode: Mode, body: ?AbstractNode, command: string) {
         super("lap", mode);
         this.body = body;
         this.command = command;
@@ -463,20 +464,26 @@ export class Lap extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: toParseNodeArray(this.body),
+            body: this.body ? this.body.toParseNode() : null,
             alignment: this.alignment,
         };
     }
 }
 
+Lap.prototype.commands = {
+    mathllap: "\\mathllap",
+    mathrlap: "\\mathrlap",
+    mathclap: "\\mathclap",
+};
+
 export class Smash extends AbstractNode {
-    body: ?AbstractNode[];
+    body: ?AbstractNode;
     command: string;
     tb: string;
     smashHeight: boolean;
     smashDepth: boolean;
 
-    constructor(mode: Mode, body: ?AbstractNode[], tb: ?{ value: string }[]) {
+    constructor(mode: Mode, body: ?AbstractNode, tb: ?{ value: string }[]) {
         super("smash", mode);
         this.body = body;
         this.tb = tb;
@@ -509,7 +516,7 @@ export class Smash extends AbstractNode {
     toParseValue() {
         return {
             type: this.type,
-            body: toParseNodeArray(this.body),
+            body: this.wrapOrdgroup(this.body),
             smashHeight: this.smashHeight,
             smashDepth: this.smashDepth,
         };

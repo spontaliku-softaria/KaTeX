@@ -6,9 +6,10 @@
 //@flow
 
 import {
-    AbstractNode, Color, Fraction, KatexSymbol, Kern, MathClass, Mathord, Mod,
+    AbstractNode, Color, Fraction, KatexSymbol, Kern, Lap, MathClass, Mathord,
+    Mod,
     Operation,
-    Overline, Rule,
+    Overline, Rule, Smash,
     Sqrt,
     Text,
     Textord, Underline,
@@ -38,7 +39,7 @@ beforeEach(function() {
             } catch (e) {
                 result.pass = false;
                 result.message =
-                    "CST tree failed building parse tree with error:" +
+                    "CST tree failed building parse tree with error:\n" +
                     e.stack +
                     "\n\nTree: " +
                     JSON.stringify(actualArray);
@@ -173,5 +174,17 @@ describe("An AST tree", function() {
     it("should build fraction", function() {
         expect(new Fraction("math", Fraction.prototype.commands.frac, mathord, mathord))
             .toBuildParseTree(`\\frac{${mathordLatex}}{${mathordLatex}}`);
+    });
+
+    it("should build lap", function() {
+        expect(new Fraction("math", Fraction.prototype.commands.frac,
+            new Lap("math", mathord, Lap.prototype.commands.mathllap),
+            mathord))
+            .toBuildParseTree(`\\frac{\\mathllap ${mathordLatex}}{${mathordLatex}}`);
+    });
+
+    it("should build smash", function() {
+        expect(new Smash("math", mathord, [{value: "t"}, {value: "b"}]))
+            .toBuildParseTree(`\\smash[tb]{${mathordLatex}}`);
     });
 });
