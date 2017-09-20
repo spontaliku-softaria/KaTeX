@@ -5,42 +5,48 @@
 /* global describe: false */
 //@flow
 
-import {
-    AbstractNode,
-    Accent,
-    AccentUnder,
-    ArrayEnvironment,
-    CasesEnvironment,
-    Color,
-    Enclose,
-    EnvironmentAlign,
-    EnvironmentSeparator,
-    ExtensibleArrow,
-    Font,
-    Fraction,
-    GatheredEnvironment,
-    HorizontalBrace,
-    KatexSymbol,
-    Kern,
-    Lap,
-    MathClass,
-    Mathord,
-    MatrixEnvironment,
-    Mod,
-    Operation,
-    Overline, RaiseBox,
-    Rule,
-    Sizing,
-    Smash,
-    Sqrt, Supsub,
-    Text,
-    Textord,
-    Underline,
-} from "../src/CST";
+
 import parseTree from "../src/parseTree";
 import Settings from "../src/Settings";
 import ParseNode from "../src/ParseNode";
 import buildTree from "../src/buildTree";
+import {
+    Accent,
+    AccentUnder,
+    ExtensibleArrow,
+    HorizontalBrace,
+    KatexSymbol,
+    Mod,
+    Overline,
+    Sqrt,
+    Supsub,
+    Underline,
+} from "../src/ast/common";
+import {
+    Color,
+    Enclose,
+    Font,
+    Lap,
+    MathClass,
+    RaiseBox,
+    Rule,
+    Sizing,
+    Smash,
+    Kern,
+    Text,
+} from "../src/ast/styling";
+import {
+    ArrayEnvironment,
+    CasesEnvironment,
+    EnvironmentAlign,
+    EnvironmentSeparator,
+    GatheredEnvironment,
+    MatrixEnvironment,
+} from "../src/ast/environments";
+import {Fraction} from "../src/ast/fraction";
+import {Operation} from "../src/ast/operation";
+import {Mathord, Textord} from "../src/ast/symbols";
+import {AbstractNode} from "../src/ast/AST";
 
 function buildLatexParseTree(latex) {
     const tree = parseTree(latex, new Settings({}));
@@ -149,125 +155,157 @@ describe("An AST tree", function() {
     const textordTextLatex = "a";
     const textordText = new Textord("text", textordTextLatex);
 
-    it("should  build KaTeX symbol", function() {
-        expect(new KatexSymbol("math")).toBuildEqualTree("\\KaTeX");
+    describe("for symbols", function() {
+        it("should build mathord", function() {
+            expect(mathord).toBuildEqualTree(mathordLatex);
+        });
+
+        it("should build textord", function() {
+            expect(textordMath).toBuildEqualTree(textordMathLatex);
+        });
     });
 
-    it("should build symbols", function() {
-        expect(mathord).toBuildEqualTree(mathordLatex);
-        expect(textordMath).toBuildEqualTree(textordMathLatex);
+    describe("for common types", function() {
+        it("should  build KaTeX symbol", function() {
+            expect(new KatexSymbol("math")).toBuildEqualTree("\\KaTeX");
+        });
+
+        it("should build sqrt", function() {
+            expect(new Sqrt("math", mathord, mathord))
+                .toBuildEqualTree(`\\sqrt[${mathordLatex}]{${mathordLatex}}`);
+        });
+
+        it("should build overline", function() {
+            expect(new Overline("math", mathord))
+                .toBuildEqualTree(`\\overline{${mathordLatex}}`);
+        });
+
+        it("should build underline", function() {
+            expect(new Underline("math", mathord))
+                .toBuildEqualTree(`\\underline{${mathordLatex}}`);
+        });
+
+        it("should build mod", function() {
+            expect(new Mod("math", null, Mod.prototype.commands.bmod))
+                .toBuildEqualTree(`\\bmod`);
+
+            expect(new Mod("math", [mathord], Mod.prototype.commands.pod))
+                .toBuildEqualTree(`\\pod ${mathordLatex}`);
+        });
+
+        it("should build accent", function() {
+            expect(new Accent("math", mathord, Accent.prototype.commands.acute))
+                .toBuildEqualTree(`\\acute ${mathordLatex}`);
+        });
+
+        it("should build horizontal brace", function() {
+            expect(new HorizontalBrace("math", mathord, HorizontalBrace.prototype.commands.overbrace))
+                .toBuildEqualTree(`\\overbrace ${mathordLatex}`);
+        });
+
+        it("should build accent below", function() {
+            expect(new AccentUnder("math", mathord, AccentUnder.prototype.commands.underleftarrow))
+                .toBuildEqualTree(`\\underleftarrow ${mathordLatex}`);
+        });
+
+        it("should build extensible arrow", function() {
+            expect(new ExtensibleArrow("math", mathord, ExtensibleArrow.prototype.commands.xhookleftarrow, mathord))
+                .toBuildEqualTree(`\\xhookleftarrow[${mathordLatex}] ${mathordLatex}`);
+        });
+
+        it("should build supsub", function() {
+            expect(new Supsub("math", mathord, mathord, mathord))
+                .toBuildEqualTree(`${mathordLatex}_${mathordLatex}^${mathordLatex}`);
+        });
     });
 
-    it("should build sqrt", function() {
-        expect(new Sqrt("math", mathord, mathord))
-            .toBuildEqualTree(`\\sqrt[${mathordLatex}]{${mathordLatex}}`);
+    describe("for styling", function() {
+        it("should build text", function() {
+            expect(new Text("math",
+                [textordText],
+                Text.prototype.commands.text))
+                .toBuildEqualTree(`\\text{${textordTextLatex}}`);
+
+            expect(new Text("math",
+                [textordText],
+                Text.prototype.commands.textrm))
+                .toBuildEqualTree(`\\textrm{${textordTextLatex}}`);
+        });
+
+        it("should build color", function() {
+            expect(new Color("math", [mathord], "blue"))
+                .toBuildEqualTree(`\\color{blue}${mathordLatex}`);
+        });
+
+        it("should build rule", function() {
+            expect(new Rule("math", "1em", "2em", "3em"))
+                .toBuildEqualTree(`\\rule[3em]{1em}{2em}`);
+        });
+
+        it("should build kern", function() {
+            expect(new Kern("math", "1em"))
+                .toBuildEqualTree(`\\kern{1em}`);
+        });
+
+        it("should build math class", function() {
+            expect(new MathClass("math", [mathord], MathClass.prototype.commands.mathord))
+                .toBuildEqualTree(`\\mathord ${mathordLatex}`);
+        });
+
+        it("should build lap", function() {
+            expect(new Fraction("math", Fraction.prototype.commands.frac,
+                new Lap("math", mathord, Lap.prototype.commands.mathllap),
+                mathord))
+                .toBuildEqualTree(`\\frac{\\mathllap ${mathordLatex}}{${mathordLatex}}`);
+        });
+
+        it("should build smash", function() {
+            expect(new Smash("math", mathord, [{value: "t"}, {value: "b"}]))
+                .toBuildEqualTree(`\\smash[tb]{${mathordLatex}}`);
+        });
+
+        it("should build font", function() {
+            expect(new Font("math", mathord, Font.prototype.commands.Bbb))
+                .toBuildEqualTree(`\\Bbb ${mathordLatex}`);
+        });
+
+        it("should build enclose", function() {
+            expect(new Enclose("math", mathord, Enclose.prototype.commands.cancel))
+                .toBuildEqualTree(`\\cancel ${mathordLatex}`);
+        });
+
+        it("should build sizing", function() {
+            expect(new Sizing("math", [mathord], 1))
+                .toBuildEqualTree(`\\tiny ${mathordLatex}`);
+        });
+
+        it("should build raise box", function() {
+            expect(new RaiseBox("math", [textordText], "1em"))
+                .toBuildEqualTree(`\\raisebox{1em}{${textordTextLatex}}`);
+        });
     });
 
-    it("should build text", function() {
-        expect(new Text("math", [textordText], Text.prototype.commands.text))
-            .toBuildEqualTree(`\\text{${textordTextLatex}}`);
+    describe("for operations", function() {
+        it("should build operation", function() {
+            expect(new Operation("math", null, Operation.prototype.commands.arcsin))
+                .toBuildEqualTree(`\\arcsin`);
 
-        expect(new Text("math", [textordText], Text.prototype.commands.textrm))
-            .toBuildEqualTree(`\\textrm{${textordTextLatex}}`);
+            expect(new Operation("math", [mathord], Operation.prototype.commands.mathop))
+                .toBuildEqualTree(`\\mathop{${mathordLatex}}`);
+        });
     });
 
-    it("should build color", function() {
-        expect(new Color("math", [mathord], "blue"))
-            .toBuildEqualTree(`\\color{blue}${mathordLatex}`);
-    });
+    describe("for fractions", function() {
+        it("should build fraction", function() {
+            expect(new Fraction("math", Fraction.prototype.commands.frac, mathord, mathord))
+                .toBuildEqualTree(`\\frac{${mathordLatex}}{${mathordLatex}}`);
+        });
 
-    it("should build overline", function() {
-        expect(new Overline("math", mathord))
-            .toBuildEqualTree(`\\overline{${mathordLatex}}`);
-    });
-
-    it("should build underline", function() {
-        expect(new Underline("math", mathord))
-            .toBuildEqualTree(`\\underline{${mathordLatex}}`);
-    });
-
-    it("should build rule", function() {
-        expect(new Rule("math", "1em", "2em", "3em"))
-            .toBuildEqualTree(`\\rule[3em]{1em}{2em}`);
-    });
-
-    it("should build kern", function() {
-        expect(new Kern("math", "1em"))
-            .toBuildEqualTree(`\\kern{1em}`);
-    });
-
-    it("should build math class", function() {
-        expect(new MathClass("math", [mathord], MathClass.prototype.commands.mathord))
-            .toBuildEqualTree(`\\mathord ${mathordLatex}`);
-    });
-
-    it("should build mod", function() {
-        expect(new Mod("math", null, Mod.prototype.commands.bmod))
-            .toBuildEqualTree(`\\bmod`);
-
-        expect(new Mod("math", [mathord], Mod.prototype.commands.pod))
-            .toBuildEqualTree(`\\pod ${mathordLatex}`);
-    });
-
-    it("should build operation", function() {
-        expect(new Operation("math", null, Operation.prototype.commands.arcsin))
-            .toBuildEqualTree(`\\arcsin`);
-
-        expect(new Operation("math", [mathord], Operation.prototype.commands.mathop))
-            .toBuildEqualTree(`\\mathop{${mathordLatex}}`);
-    });
-
-    it("should build fraction", function() {
-        expect(new Fraction("math", Fraction.prototype.commands.frac, mathord, mathord))
-            .toBuildEqualTree(`\\frac{${mathordLatex}}{${mathordLatex}}`);
-    });
-
-    it("should build lap", function() {
-        expect(new Fraction("math", Fraction.prototype.commands.frac,
-            new Lap("math", mathord, Lap.prototype.commands.mathllap),
-            mathord))
-            .toBuildEqualTree(`\\frac{\\mathllap ${mathordLatex}}{${mathordLatex}}`);
-    });
-
-    it("should build smash", function() {
-        expect(new Smash("math", mathord, [{value: "t"}, {value: "b"}]))
-            .toBuildEqualTree(`\\smash[tb]{${mathordLatex}}`);
-    });
-
-    it("should build font", function() {
-        expect(new Font("math", mathord, Font.prototype.commands.Bbb))
-            .toBuildEqualTree(`\\Bbb ${mathordLatex}`);
-    });
-
-    it("should build accent", function() {
-        expect(new Accent("math", mathord, Accent.prototype.commands.acute))
-            .toBuildEqualTree(`\\acute ${mathordLatex}`);
-    });
-
-    it("should build horizontal brace", function() {
-        expect(new HorizontalBrace("math", mathord, HorizontalBrace.prototype.commands.overbrace))
-            .toBuildEqualTree(`\\overbrace ${mathordLatex}`);
-    });
-
-    it("should build accent below", function() {
-        expect(new AccentUnder("math", mathord, AccentUnder.prototype.commands.underleftarrow))
-            .toBuildEqualTree(`\\underleftarrow ${mathordLatex}`);
-    });
-
-    it("should build extensible arrow", function() {
-        expect(new ExtensibleArrow("math", mathord, ExtensibleArrow.prototype.commands.xhookleftarrow, mathord))
-            .toBuildEqualTree(`\\xhookleftarrow[${mathordLatex}] ${mathordLatex}`);
-    });
-
-    it("should build accent below", function() {
-        expect(new Enclose("math", mathord, Enclose.prototype.commands.cancel))
-            .toBuildEqualTree(`\\cancel ${mathordLatex}`);
-    });
-
-    it("should build infix fraction", function() {
-        //FIXME: fix after properly handling InfixFraction
-        expect(new Fraction("math", Fraction.prototype.commands.frac, mathord, mathord))
-            .toBuildEqualTree(`${mathordLatex} \\over ${mathordLatex}`);
+        it("should build infix fraction", function() {
+            //FIXME: fix after properly handling InfixFraction
+            expect(new Fraction("math", Fraction.prototype.commands.frac, mathord, mathord))
+                .toBuildEqualTree(`${mathordLatex} \\over ${mathordLatex}`);
+        });
     });
 
     describe("for environments", function() {
@@ -366,20 +404,5 @@ describe("An AST tree", function() {
                 ${mathordLatex} & ${mathordLatex}
                 \\end{gathered}`);
         });
-    });
-
-    it("should build sizing", function() {
-        expect(new Sizing("math", [mathord], 1))
-            .toBuildEqualTree(`\\tiny ${mathordLatex}`);
-    });
-
-    it("should build raise box", function() {
-        expect(new RaiseBox("math", [textordText], "1em"))
-            .toBuildEqualTree(`\\raisebox{1em}{${textordTextLatex}}`);
-    });
-
-    it("should build supsub", function() {
-        expect(new Supsub("math", mathord, mathord, mathord))
-            .toBuildEqualTree(`${mathordLatex}_${mathordLatex}^${mathordLatex}`);
     });
 });
