@@ -41,7 +41,7 @@ export class Mod extends AbstractNode {
     modType: string;
 
     constructor(mode: Mode, body: ?AbstractNode[], modType: string) {
-        super("mod", mode, body);
+        super("mod", mode);
         this.body = body;
         this.modType = modType;
     }
@@ -73,7 +73,7 @@ export class Accent extends AbstractNode {
         this.body = body;
         this.label = label;
 
-        this.isStretchy = !utils.contains(stretchyAccents, label);
+        this.isStretchy = !utils.contains(notStretchyAccents, label);
 
         this.isShifty = !this.isStretchy ||
                         utils.contains(shiftyAccents, label);
@@ -126,7 +126,7 @@ Accent.prototype.commands = {
     v: "\\v",
 };
 
-const stretchyAccents = [
+const notStretchyAccents = [
     Accent.prototype.commands.acute, Accent.prototype.commands.grave,
     Accent.prototype.commands.ddot, Accent.prototype.commands.tilde,
     Accent.prototype.commands.bar, Accent.prototype.commands.breve,
