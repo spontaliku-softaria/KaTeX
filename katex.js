@@ -13,6 +13,8 @@ import Settings from "./src/Settings";
 import buildTree from "./src/buildTree";
 import parseTree from "./src/parseTree";
 import utils from "./src/utils";
+import {Mode} from "./src/types";
+import ParseNode from "./src/ParseNode";
 
 /**
  * Parse and build an expression, and place that expression in the DOM node
@@ -24,6 +26,19 @@ let render = function(expression, baseNode, options) {
     const settings = new Settings(options);
 
     const tree = parseTree(expression, settings);
+    const node = buildTree(tree, expression, settings).toNode();
+
+    baseNode.appendChild(node);
+};
+
+/**
+ * Build parse tree in to DOM tree, and place that tree in the DOM node given.
+ */
+const renderTree = function(tree, expression, baseNode, options) {
+    utils.clearNode(baseNode);
+
+    const settings = new Settings(options);
+
     const node = buildTree(tree, expression, settings).toNode();
 
     baseNode.appendChild(node);
@@ -54,6 +69,15 @@ const renderToString = function(expression, options) {
 };
 
 /**
+ * Build parse tree into DOM tree, and return the markup for that.
+ */
+const renderTreeToString = function(tree, expression, options) {
+    const settings = new Settings(options);
+
+    return buildTree(tree, expression, settings).toMarkup();
+};
+
+/**
  * Parse an expression and return the parse tree.
  */
 const generateParseTree = function(expression, options) {
@@ -64,6 +88,8 @@ const generateParseTree = function(expression, options) {
 module.exports = {
     render: render,
     renderToString: renderToString,
+    renderTree: renderTree,
+    renderTreeToString: renderTreeToString,
     /**
      * NOTE: This method is not currently recommended for public use.
      * The internal tree representation is unstable and is very likely
@@ -71,4 +97,6 @@ module.exports = {
      */
     __parse: generateParseTree,
     ParseError: ParseError,
+    Mode: Mode,
+    ParseNode: ParseNode,
 };
