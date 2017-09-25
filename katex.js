@@ -15,6 +15,7 @@ import parseTree from "./src/parseTree";
 import utils from "./src/utils";
 import {Mode} from "./src/types";
 import ParseNode from "./src/ParseNode";
+import symbols from "./src/symbols";
 
 /**
  * Parse and build an expression, and place that expression in the DOM node
@@ -99,4 +100,5 @@ module.exports = {
     ParseError: ParseError,
     Mode: Mode,
     ParseNode: ParseNode,
+    symbols: symbols,
 };
