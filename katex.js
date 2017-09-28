@@ -100,9 +100,9 @@ const katex = {
      */
     __parse: generateParseTree,
     ParseError: ParseError,
-    Mode: Mode,
-    ParseNode: ParseNode,
     symbols: symbols,
 };
+
+export {Mode, ParseNode};
 
 export default katex;
