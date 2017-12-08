@@ -313,6 +313,8 @@ defineFunction([
     "\\arcsech",
     "\\csc", "\\cosec"/*Russian*/,
     "\\csch", "\\cosech"/*Russian*/,
+    "\\arccsc",
+    "\\arccsch",
     "\\arg", "\\deg", "\\dim", "\\exp",
     "\\hom", "\\ker", "\\lg", "\\ln", "\\log",
 ], {
