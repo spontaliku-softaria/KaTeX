@@ -17,6 +17,7 @@ import utils from "./src/utils";
 
 import type {SettingsOptions} from "./src/Settings";
 import type ParseNode from "./src/ParseNode";
+import symbols from "./src/symbols";
 
 /**
  * Parse and build an expression, and place that expression in the DOM node
@@ -95,6 +96,10 @@ const renderToHTMLTree = function(
     return buildHTMLTree(tree, expression, settings);
 };
 
+const copySymbols = function() {
+    return JSON.parse(JSON.stringify(symbols));
+};
+
 export default {
     /**
      * Renders the given LaTeX into an HTML+MathML combination, and adds
@@ -137,4 +142,12 @@ export default {
      * to change. Use at your own risk.
      */
     __renderToHTMLTree: renderToHTMLTree,
+    /**
+     * Returns set of supported symbols in internal format.
+     *
+     * NOTE: This method is not currently recommended for public use.
+     * The internal tree representation is unstable and is very likely
+     * to change. Use at your own risk.
+     */
+    __symbols: copySymbols,
 };
