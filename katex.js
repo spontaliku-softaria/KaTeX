@@ -100,8 +100,9 @@ const renderToHTMLTree = function(
     return buildHTMLTree(parsedTree, expression, settings);
 };
 
+const symbolsClone = JSON.parse(JSON.stringify(symbols));
 const copySymbols = function() {
-    return JSON.parse(JSON.stringify(symbols));
+    return symbolsClone;
 };
 
 export default {
